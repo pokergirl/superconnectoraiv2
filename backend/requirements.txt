@@ -10,3 +10,9 @@ passlib[bcrypt]
 python-jose
 python-multipart
 anthropic
+pandas
+beautifulsoup4
+emoji
+openai
+httpx
+pinecone-client
