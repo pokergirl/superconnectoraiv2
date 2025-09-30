@@ -30,7 +30,7 @@ async def generate_email_content(reason: str) -> str:
 
     try:
         genai.configure(api_key=settings.GEMINI_API_KEY)
-        model = genai.GenerativeModel('gemini-1.5-pro-latest')
+        model = genai.GenerativeModel(settings.GEMINI_GENERATION_MODEL)
         
         prompt = f"""You are a helpful assistant that writes professional outreach emails.
 
@@ -46,5 +46,5 @@ Please make the email:
         response = model.generate_content(prompt)
         return response.text.strip()
     except Exception as e:
-        print(f"Error generating email content with Gemini: {e}")
+        print(f"Error generating email content with Gemini ({settings.GEMINI_MODEL}): {e}")
         return "Error generating email content."

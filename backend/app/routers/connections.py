@@ -131,7 +131,7 @@ async def get_connections_count(
     current_user: dict = Depends(get_current_user),
     db = Depends(get_database)
 ):
-    user_id = UUID(current_user["id"])
+    user_id = current_user.id
     count = await connections_service.get_user_connections_count(db, user_id)
     return {"count": count}
 

@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from app.core.db import get_database
 from app.core.config import settings
 from app.core import security
-from app.models.user import UserCreate, UserInDB, TokenData, UserRole, UserStatus, AdminUserCreate, PasswordResetRequest
+from app.models.user import UserCreate, UserInDB, TokenData, UserRole, UserStatus, AdminUserCreate, PasswordResetRequest, UserPublic
 from app.services import invitation_service
 import secrets
 import string
@@ -97,7 +97,26 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db=Depends(get_d
     user = await get_user_by_email(db, email=token_data.email)
     if user is None:
         raise credentials_exception
-    return user
+    
+    # Consistent user status check - same as authenticate_user
+    if user.get("status") != UserStatus.active.value:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User account is not active",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    user_public = UserPublic(
+        id=user["id"],
+        email=user["email"],
+        role=user["role"],
+        status=user["status"],
+        is_premium=user["is_premium"],
+        must_change_password=user["must_change_password"],
+        created_at=user["created_at"],
+        last_login=user["last_login"],
+    )
+    return user_public
 
 def generate_temporary_password(length: int = 12) -> str:
     """Generate a secure temporary password"""
@@ -192,9 +211,9 @@ async def reset_password(db, reset_request: PasswordResetRequest):
     
     return {"message": "Password reset successfully"}
 
-async def get_current_admin_user(current_user: dict = Depends(get_current_user)):
+async def get_current_admin_user(current_user: UserPublic = Depends(get_current_user)):
     """Dependency to ensure current user is an admin"""
-    if current_user.get("role") != UserRole.admin.value:
+    if current_user.role != UserRole.admin:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required"

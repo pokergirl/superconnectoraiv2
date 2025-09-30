@@ -47,7 +47,7 @@ async def update_access_request(
 ):
     """Admin endpoint to update an access request"""
     updated_request = await access_request_service.update_access_request(
-        db, request_id, update_data, current_admin["id"]
+        db, request_id, update_data, current_admin.id
     )
     
     # If there's an email template (for rejections), include it in the response
@@ -68,7 +68,7 @@ async def approve_access_request(
 ):
     """Admin endpoint to approve an access request and create user with OTP"""
     user_dict, temp_password, email_template = await access_request_service.approve_access_request_and_create_user(
-        db, request_id, current_admin["id"]
+        db, request_id, current_admin.id
     )
     
     # Convert user_dict to UserPublic format and add OTP

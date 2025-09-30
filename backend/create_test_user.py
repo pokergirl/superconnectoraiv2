@@ -1,68 +1,41 @@
-#!/usr/bin/env python3
-
 import asyncio
-import sys
-import os
-from datetime import datetime
-from uuid import uuid4
-
-# Add the backend directory to the Python path
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
-from app.core.db import get_database, connect_to_mongo
+from app.core.db import get_database, connect_to_mongo, close_mongo_connection
+from app.models.user import UserInDB, UserRole, UserStatus
 from app.core.security import get_password_hash
+from datetime import datetime
 
 async def create_test_user():
-    """Create a test user for login testing"""
-    
-    # Initialize database connection
+    """Create a test user for diagnosis"""
     await connect_to_mongo()
     db = get_database()
     
-    # Test user credentials
+    # Check if test user already exists
     test_email = "test@example.com"
-    test_password = "testpass123"
-    user_id = "5741eb91-8eb7-41f1-acb3-7ec46dfacca9"  # Same as used in connections
-    
-    print(f"🔧 Creating test user: {test_email}")
-    
-    # Check if user already exists
     existing_user = await db.users.find_one({"email": test_email})
     if existing_user:
-        print(f"✅ Test user already exists with ID: {existing_user.get('id', existing_user.get('_id'))}")
-        return existing_user.get('id', existing_user.get('_id'))
+        print(f"Test user with email {test_email} already exists.")
+        await close_mongo_connection()
+        return
+
+    hashed_password = get_password_hash("testpassword")
     
-    # Hash the password
-    hashed_password = get_password_hash(test_password)
+    test_user = UserInDB(
+        email=test_email,
+        hashed_password=hashed_password,
+        role=UserRole.user,
+        status=UserStatus.active,
+        is_premium=False,
+        must_change_password=False,
+        created_at=datetime.utcnow()
+    )
     
-    # Create user document
-    user_doc = {
-        "id": user_id,
-        "_id": user_id,
-        "email": test_email,
-        "hashed_password": hashed_password,
-        "role": "user",
-        "status": "active",
-        "is_premium": False,
-        "invitation_id": None,
-        "must_change_password": False,
-        "created_at": datetime.utcnow(),
-        "last_login": None
-    }
+    user_dict = test_user.model_dump()
+    user_dict["id"] = str(user_dict["id"])
     
-    # Insert user
-    try:
-        await db.users.insert_one(user_doc)
-        print(f"✅ Successfully created test user!")
-        print(f"   📧 Email: {test_email}")
-        print(f"   🔑 Password: {test_password}")
-        print(f"   🆔 User ID: {user_id}")
-        print(f"\n🎯 You can now login with these credentials to test search functionality!")
-        return user_id
-        
-    except Exception as e:
-        print(f"❌ Error creating test user: {e}")
-        return None
+    await db.users.insert_one(user_dict)
+    print(f"Test user {test_email} created successfully.")
+    
+    await close_mongo_connection()
 
 if __name__ == "__main__":
     asyncio.run(create_test_user())

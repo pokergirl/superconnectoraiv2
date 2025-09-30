@@ -41,7 +41,7 @@ class GeminiEmbeddingsService:
             self.index = None
             
         # Use Gemini's text embedding model - use the larger dimension model for compatibility
-        self.embedding_model = "text-embedding-004"
+        self.embedding_model = settings.GEMINI_EMBEDDING_MODEL
         # Note: text-embedding-004 produces 768-dimensional vectors
         # For compatibility with existing 1536-dimensional Pinecone index, we'll need to pad or recreate the index
         self.batch_size = 500
@@ -111,17 +111,10 @@ class GeminiEmbeddingsService:
             result = genai.embed_content(
                 model=self.embedding_model,
                 content=text,
-                task_type="retrieval_document"
+                task_type="retrieval_document",
+                output_dimensionality=1536
             )
             embedding = result['embedding']
-            
-            # Pad 768-dimensional vector to 1536 dimensions for Pinecone compatibility
-            if len(embedding) == 768:
-                # Pad with zeros to reach 1536 dimensions
-                padding = [0.0] * (1536 - 768)
-                embedding = embedding + padding
-                print(f"Padded embedding from 768 to {len(embedding)} dimensions")
-            
             return embedding
         except Exception as e:
             print(f"Error generating embedding with Gemini: {e}")
@@ -149,16 +142,10 @@ class GeminiEmbeddingsService:
                 result = genai.embed_content(
                     model=self.embedding_model,
                     content=text,
-                    task_type="retrieval_document"
+                    task_type="retrieval_document",
+                    output_dimensionality=1536
                 )
                 embedding = result['embedding']
-                
-                # Pad 768-dimensional vector to 1536 dimensions for Pinecone compatibility
-                if len(embedding) == 768:
-                    # Pad with zeros to reach 1536 dimensions
-                    padding = [0.0] * (1536 - 768)
-                    embedding = embedding + padding
-                
                 embeddings.append(embedding)
                 
                 # Small delay to avoid rate limiting

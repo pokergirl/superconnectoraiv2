@@ -24,7 +24,7 @@ async def create_saved_search(
 ):
     """Create a new saved search"""
     try:
-        user_id = UUID(current_user["id"])
+        user_id = current_user.id
         saved_search = await saved_searches_service.create_saved_search(db, user_id, saved_search_data)
         return saved_search
     except Exception as e:
@@ -40,7 +40,7 @@ async def get_saved_searches(
 ):
     """Get all saved searches for the current user"""
     try:
-        user_id = UUID(current_user["id"])
+        user_id = current_user.id
         saved_searches = await saved_searches_service.get_user_saved_searches(db, user_id)
         return saved_searches
     except Exception as e:
@@ -57,7 +57,7 @@ async def get_saved_search(
 ):
     """Get a specific saved search by ID"""
     try:
-        user_id = UUID(current_user["id"])
+        user_id = current_user.id
         saved_search = await saved_searches_service.get_saved_search_by_id(db, user_id, search_id)
         
         if not saved_search:
@@ -84,7 +84,7 @@ async def update_saved_search(
 ):
     """Update a saved search"""
     try:
-        user_id = UUID(current_user["id"])
+        user_id = current_user.id
         
         # Only include non-None fields in the update
         update_dict = {k: v for k, v in update_data.model_dump().items() if v is not None}
@@ -120,7 +120,7 @@ async def delete_saved_search(
 ):
     """Delete a saved search"""
     try:
-        user_id = UUID(current_user["id"])
+        user_id = current_user.id
         deleted = await saved_searches_service.delete_saved_search(db, user_id, search_id)
         
         if not deleted:
@@ -150,7 +150,7 @@ async def run_saved_search(
     Execute a saved search using the new retrieval service
     """
     try:
-        user_id = UUID(current_user["id"])
+        user_id = current_user.id
         
         # Get the saved search
         saved_search = await saved_searches_service.get_saved_search_by_id(db, user_id, search_id)

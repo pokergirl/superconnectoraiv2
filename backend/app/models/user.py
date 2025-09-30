@@ -30,6 +30,7 @@ class UserInDB(UserBase):
     must_change_password: bool = False  # Flag to force password reset on next login
     created_at: datetime = Field(default_factory=datetime.utcnow)
     last_login: Optional[datetime] = None
+    persist_search_results: bool = True
 
 class UserPublic(UserBase):
     id: UUID

@@ -6,6 +6,7 @@ export interface User {
   is_premium?: boolean;
   created_at: string;
   last_login?: string | null;
+  persist_search_results: boolean;
 }
 
 export interface Connection {

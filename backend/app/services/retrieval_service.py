@@ -35,7 +35,7 @@ class RetrievalService:
         
         try:
             genai.configure(api_key=settings.GEMINI_API_KEY)
-            self.gemini_client = genai.GenerativeModel('gemini-1.5-pro-latest')
+            self.gemini_client = genai.GenerativeModel('gemini-2.5-flash-lite')
             print("Gemini client initialized successfully")
         except Exception as e:
             print(f"Error initializing Gemini client: {e}")
@@ -399,8 +399,8 @@ Example format:
         return all_results
     
     async def retrieve_and_rerank(
-        self, 
-        user_query: str, 
+        self,
+        user_query: str,
         user_id: str = "default_user",
         enable_query_rewrite: bool = True,
         filter_dict: Optional[Dict[str, Any]] = None
@@ -418,7 +418,9 @@ Example format:
             List of re-ranked and annotated results
         """
         try:
-            logger.info(f"Starting retrieval and re-ranking for query: '{user_query}'")
+            # Ensure user_id is a string to prevent serialization issues
+            namespace = str(user_id)
+            logger.info(f"Starting retrieval and re-ranking for query: '{user_query}' in namespace: {namespace}")
             
             # Step 1: Optional query rewrite
             processed_query = await self.rewrite_query_with_llm(user_query, enable_query_rewrite)
@@ -432,13 +434,13 @@ Example format:
                 top_k=30,
                 alpha=0.6,
                 filter_dict=filter_dict,
-                namespace=user_id
+                namespace=namespace
             )
             
             if not candidate_profiles:
                 logger.warning("No profiles found in Pinecone query, falling back to MongoDB search")
                 # Fallback to MongoDB text search when Pinecone returns no results
-                candidate_profiles = await self.fallback_mongodb_search(user_query, user_id, filter_dict)
+                candidate_profiles = await self.fallback_mongodb_search(user_query, namespace, filter_dict)
                 if not candidate_profiles:
                     logger.warning("No profiles found in MongoDB fallback either")
                     return []

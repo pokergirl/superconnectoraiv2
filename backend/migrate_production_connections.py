@@ -169,7 +169,7 @@ async def import_connections_from_json(filename="production_connections_export.j
                 for key, value in conn.items():
                     if key in ['created_at', 'updated_at'] and isinstance(value, str):
                         try:
-                            conn[key] = datetime.fromisoformat(value.replace('Z', '+00:00'))
+                            conn[key] = datetime.fromisoformat(value)
                         except:
                             conn[key] = datetime.utcnow()
             

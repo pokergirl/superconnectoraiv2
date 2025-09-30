@@ -28,8 +28,7 @@ async def create_invitation(db, invitation: InvitationCreate, invited_by_email: 
     # Create invitation with generated code
     invitation_code = generate_invitation_code()
     invitation_in_db = InvitationInDB(
-        **invitation.model_dump(),
-        invited_by=invited_by_email
+        **invitation.model_dump()
     )
     
     # Convert to dict for MongoDB
@@ -90,7 +89,7 @@ async def accept_invitation(db, invitation_code: str) -> dict:
             detail="Invitation is no longer valid"
         )
     
-    if datetime.fromisoformat(invitation["expires_at"].replace('Z', '+00:00')) < datetime.utcnow():
+    if invitation["expires_at"] < datetime.utcnow():
         # Mark as expired
         await update_invitation(db, invitation["id"], InvitationUpdate(status=InvitationStatus.expired))
         raise HTTPException(

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { searchConnectionsWithProgress, getConnectionsCount, createSavedSearch } from '@/lib/api';
+import { searchConnectionsWithProgress, getConnectionsCount, createSavedSearch, getLastSearchResults, clearLastSearchResults } from '@/lib/api';
 import { SearchResult, Connection } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { AutoExpandingTextarea } from '@/components/ui/auto-expanding-textarea';
@@ -79,39 +79,53 @@ export default function DashboardPage() {
 
  // Load persisted search results on component mount
  useEffect(() => {
-   if (!user?.id) return; // Don't load persisted data without user context
+   if (!token || !user?.id) return; // Don't load persisted data without user context and token
    
-   const userPrefix = `user_${user.id}_`;
-   const savedResults = localStorage.getItem(`${userPrefix}superconnect_search_results`);
-   const savedQuery = localStorage.getItem(`${userPrefix}superconnect_search_query`);
-   const savedFilters = localStorage.getItem(`${userPrefix}superconnect_search_filters`);
-   
-   if (savedResults && savedQuery) {
+   const loadLastSearchResults = async () => {
      try {
-       setPersistedResults(JSON.parse(savedResults));
-       setPersistedQuery(savedQuery);
-       setQuery(savedQuery);
-       setHasSearched(true);
-       setResults(JSON.parse(savedResults));
+       const lastSearchData = await getLastSearchResults(token);
        
-       if (savedFilters) {
-         setSearchFilters(JSON.parse(savedFilters));
+       if (lastSearchData.has_results && lastSearchData.data) {
+         const { query: savedQuery, filters: savedFilters, results: savedResults } = lastSearchData.data;
+         
+         setPersistedResults(savedResults);
+         setPersistedQuery(savedQuery);
+         setQuery(savedQuery);
+         setHasSearched(true);
+         setResults(savedResults);
+         
+         if (savedFilters) {
+           setSearchFilters(savedFilters);
+         }
        }
      } catch (error) {
-       console.error('Failed to load persisted search results:', error);
+       console.error('Failed to load last search results:', error);
+       // Fallback to localStorage for backward compatibility
+       const userPrefix = `user_${user.id}_`;
+       const savedResults = localStorage.getItem(`${userPrefix}superconnect_search_results`);
+       const savedQuery = localStorage.getItem(`${userPrefix}superconnect_search_query`);
+       const savedFilters = localStorage.getItem(`${userPrefix}superconnect_search_filters`);
+       
+       if (savedResults && savedQuery) {
+         try {
+           setPersistedResults(JSON.parse(savedResults));
+           setPersistedQuery(savedQuery);
+           setQuery(savedQuery);
+           setHasSearched(true);
+           setResults(JSON.parse(savedResults));
+           
+           if (savedFilters) {
+             setSearchFilters(JSON.parse(savedFilters));
+           }
+         } catch (parseError) {
+           console.error('Failed to load persisted search results from localStorage:', parseError);
+         }
+       }
      }
-   }
- }, [user?.id]);
-
- // Persist search results whenever they change
- useEffect(() => {
-   if (results.length > 0 && query && user?.id) {
-     const userPrefix = `user_${user.id}_`;
-     localStorage.setItem(`${userPrefix}superconnect_search_results`, JSON.stringify(results));
-     localStorage.setItem(`${userPrefix}superconnect_search_query`, query);
-     localStorage.setItem(`${userPrefix}superconnect_search_filters`, JSON.stringify(searchFilters));
-   }
- }, [results, query, searchFilters, user?.id]);
+   };
+   
+   loadLastSearchResults();
+ }, [token, user?.id]);
  
    const handleSearch = async (e: React.FormEvent) => {
      e.preventDefault();
@@ -256,17 +270,29 @@ export default function DashboardPage() {
    // User needs to manually search after clearing
  };
 
- const clearPersistedResults = () => {
+ const clearPersistedResults = async () => {
+   try {
+     if (token) {
+       await clearLastSearchResults(token);
+     }
+   } catch (error) {
+     console.error('Failed to clear last search results from server:', error);
+   }
+   
+   // Also clear localStorage for backward compatibility
    if (user?.id) {
      const userPrefix = `user_${user.id}_`;
      localStorage.removeItem(`${userPrefix}superconnect_search_results`);
      localStorage.removeItem(`${userPrefix}superconnect_search_query`);
      localStorage.removeItem(`${userPrefix}superconnect_search_filters`);
    }
+   
    setResults([]);
    setQuery('');
    setSearchFilters({});
    setHasSearched(false);
+   setPersistedResults([]);
+   setPersistedQuery('');
  };
 
  

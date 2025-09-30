@@ -25,6 +25,7 @@ const adminNavLinks: NavLink[] = [
   { href: '/warm-intro-requests', label: 'Warm Intro Requests', countKey: 'warm_intro_requests' },
   { href: '/admin/follow-ups', label: 'Follow-Up Emails', countKey: 'follow_up_emails' },
   { href: '/access-requests', label: 'Access Requests', countKey: 'access_requests' },
+  { href: '/settings', label: 'Settings' },
 ];
 
 const userNavLinks: NavLink[] = [

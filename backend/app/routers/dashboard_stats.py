@@ -9,15 +9,16 @@ router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
 @router.get("/pending-counts")
 async def get_pending_counts(
-    current_admin: dict = Depends(get_current_admin_user),
+    current_admin: "UserPublic" = Depends(get_current_admin_user),
     db = Depends(get_database)
 ):
     """Get pending counts for current user's dashboard items"""
     try:
         from datetime import datetime
+        from app.models.user import UserPublic
         
         # Get current user ID
-        user_id = current_admin["id"]
+        user_id = current_admin.id
         
         # Get pending warm intro requests count for current user
         warm_intro_count = await db.warm_intro_requests.count_documents({

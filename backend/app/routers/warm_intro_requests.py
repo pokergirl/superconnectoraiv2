@@ -58,7 +58,7 @@ class PaginatedWarmIntroRequestsResponse(BaseModel):
 @router.post("/warm-intro-requests/", response_model=WarmIntroRequestResponse, status_code=status.HTTP_201_CREATED)
 async def create_warm_intro_request(
     request: WarmIntroRequestCreate,
-    current_user: dict = Depends(get_current_user),
+    current_user = Depends(get_current_user),
     db = Depends(get_database)
 ):
     """
@@ -66,7 +66,7 @@ async def create_warm_intro_request(
     
     Requires authentication. The request will be associated with the current user.
     """
-    user_id = UUID(current_user["id"])
+    user_id = UUID(str(current_user.id))
     
     try:
         warm_intro_request = await warm_intro_requests_service.create_warm_intro_request(
@@ -102,7 +102,7 @@ async def create_warm_intro_request(
 
 @router.get("/warm-intro-requests/", response_model=PaginatedWarmIntroRequestsResponse)
 async def get_warm_intro_requests(
-    current_user: dict = Depends(get_current_user),
+    current_user = Depends(get_current_user),
     db = Depends(get_database),
     page: int = Query(1, ge=1, description="Page number"),
     limit: int = Query(10, ge=1, le=100, description="Items per page"),
@@ -113,7 +113,7 @@ async def get_warm_intro_requests(
     
     Requires authentication. Only returns requests belonging to the current user.
     """
-    user_id = UUID(current_user["id"])
+    user_id = UUID(str(current_user.id))
     
     try:
         result = await warm_intro_requests_service.get_warm_intro_requests(
@@ -162,7 +162,7 @@ async def get_warm_intro_requests(
 @router.get("/warm-intro-requests/{request_id}", response_model=WarmIntroRequestResponse)
 async def get_warm_intro_request_by_id(
     request_id: UUID,
-    current_user: dict = Depends(get_current_user),
+    current_user = Depends(get_current_user),
     db = Depends(get_database)
 ):
     """
@@ -170,7 +170,7 @@ async def get_warm_intro_request_by_id(
     
     Requires authentication. Only returns the request if it belongs to the current user.
     """
-    user_id = UUID(current_user["id"])
+    user_id = UUID(str(current_user.id))
     
     try:
         warm_intro_request = await warm_intro_requests_service.get_warm_intro_request_by_id(
@@ -221,7 +221,7 @@ async def get_warm_intro_request_by_id(
 async def update_warm_intro_request_status(
     request_id: UUID,
     request: WarmIntroRequestUpdate,
-    current_user: dict = Depends(get_current_user),
+    current_user = Depends(get_current_user),
     db = Depends(get_database)
 ):
     """
@@ -229,7 +229,7 @@ async def update_warm_intro_request_status(
     
     Requires authentication. Only allows updating requests that belong to the current user.
     """
-    user_id = UUID(current_user["id"])
+    user_id = UUID(str(current_user.id))
     
     try:
         # First, verify the request exists and belongs to the user
@@ -276,7 +276,7 @@ async def update_warm_intro_request_status(
                 await schedule_follow_up_email(
                     db=db,
                     warm_intro_request_id=str(request_id),
-                    requester_email=current_user.get("email", ""),
+                    requester_email=current_user.email,
                     requester_name=updated_request.requester_name,
                     connection_name=updated_request.connection_name,
                     facilitator_email="ha@superconnect.ai",  # Default facilitator email
@@ -313,7 +313,7 @@ async def update_warm_intro_request_status(
 
 @router.get("/warm-intro-requests/stats/counts")
 async def get_warm_intro_request_counts(
-    current_user: dict = Depends(get_current_user),
+    current_user = Depends(get_current_user),
     db = Depends(get_database)
 ):
     """
@@ -321,7 +321,7 @@ async def get_warm_intro_request_counts(
     
     Requires authentication. Only returns counts for the current user's requests.
     """
-    user_id = UUID(current_user["id"])
+    user_id = UUID(str(current_user.id))
     
     try:
         counts = await warm_intro_requests_service.get_warm_intro_request_counts(
@@ -343,7 +343,7 @@ async def get_warm_intro_request_counts(
 
 @router.get("/warm-intro-requests/export/csv")
 async def export_connected_requests_csv(
-    current_user: dict = Depends(get_current_user),
+    current_user = Depends(get_current_user),
     db = Depends(get_database)
 ):
     """
@@ -351,7 +351,7 @@ async def export_connected_requests_csv(
     
     Requires authentication. Only exports requests belonging to the current user.
     """
-    user_id = UUID(current_user["id"])
+    user_id = UUID(str(current_user.id))
     
     try:
         # Get all connected requests for the user

@@ -8,10 +8,12 @@ import asyncio
 from datetime import datetime
 
 from app.services.auth_service import get_current_user
-from app.services import connections_service, search_history_service
+from app.services import connections_service, search_history_service, last_search_results_service
 from app.services.ai_service import search_connections
 from app.services.retrieval_service import retrieval_service
 from app.models.search_history import SearchHistoryCreate
+from app.models.last_search_results import LastSearchResultsCreate
+from app.models.user import UserPublic
 from app.core.db import get_database
 
 router = APIRouter()
@@ -37,7 +39,7 @@ async def ai_search_connections(
     search_request: SearchRequest,
     page: int = Query(1, ge=1, description="Page number for pagination"),
     page_size: int = Query(20, ge=1, le=100, description="Number of results per page"),
-    current_user: dict = Depends(get_current_user),
+    current_user: UserPublic = Depends(get_current_user),
     db = Depends(get_database)
 ):
     """
@@ -50,7 +52,7 @@ async def ai_search_connections(
         )
     
     try:
-        user_id = current_user["id"]
+        user_id = current_user.id
         
         # Convert filters to the format expected by the retrieval service
         filter_dict = None
@@ -92,10 +94,26 @@ async def ai_search_connections(
                 filters=search_request.filters.model_dump() if search_request.filters else None,
                 results_count=len(search_results)
             )
-            await search_history_service.create_search_history_entry(db, UUID(user_id), history_entry)
+            await search_history_service.create_search_history_entry(db, user_id, history_entry)
         except Exception as history_error:
             print(f"Failed to save search history: {history_error}")
             # Don't fail the search if history saving fails
+        
+        # Save as last search results for persistence across sessions
+        if getattr(current_user, "persist_search_results", True):
+            try:
+                last_search_entry = LastSearchResultsCreate(
+                    query=search_request.query,
+                    filters=search_request.filters.model_dump() if search_request.filters else None,
+                    results=[result.model_dump() for result in search_results],
+                    results_count=len(search_results),
+                    page=page,
+                    page_size=page_size
+                )
+                await last_search_results_service.save_last_search_results(db, user_id, last_search_entry)
+            except Exception as last_search_error:
+                print(f"Failed to save last search results: {last_search_error}")
+                # Don't fail the search if last search saving fails
         
         return search_results
         
@@ -111,7 +129,7 @@ async def ai_search_connections_stream(
     search_request: SearchRequest,
     page: int = Query(1, ge=1, description="Page number for pagination"),
     page_size: int = Query(20, ge=1, le=100, description="Number of results per page"),
-    current_user: dict = Depends(get_current_user),
+    current_user: UserPublic = Depends(get_current_user),
     db = Depends(get_database)
 ):
     """
@@ -125,7 +143,7 @@ async def ai_search_connections_stream(
     
     async def generate_search_stream() -> AsyncGenerator[str, None]:
         try:
-            user_id = current_user["id"]
+            user_id = current_user.id
             
             # Send initial status
             yield f"data: {json.dumps({'type': 'status', 'message': 'Starting search...'})}\n\n"
@@ -185,9 +203,37 @@ async def ai_search_connections_stream(
                     filters=search_request.filters.model_dump() if search_request.filters else None,
                     results_count=len(paginated_results)
                 )
-                await search_history_service.create_search_history_entry(db, UUID(user_id), history_entry)
+                await search_history_service.create_search_history_entry(db, user_id, history_entry)
             except Exception as history_error:
                 print(f"Failed to save search history: {history_error}")
+            
+            # Save as last search results for persistence across sessions
+            try:
+                # Convert search results to the format expected by LastSearchResultsCreate
+                search_results_for_last_search = []
+                for result in paginated_results:
+                    pros = result.get("pros", [result.get("pro", "Strong candidate match.")])
+                    cons = result.get("cons", [result.get("con", "Some limitations may apply.")])
+                    
+                    search_results_for_last_search.append({
+                        "connection": result["profile"],
+                        "score": result["score"],
+                        "summary": result.get("pro", pros[0] if pros else "Strong candidate match."),
+                        "pros": pros,
+                        "cons": cons
+                    })
+                
+                last_search_entry = LastSearchResultsCreate(
+                    query=search_request.query,
+                    filters=search_request.filters.model_dump() if search_request.filters else None,
+                    results=search_results_for_last_search,
+                    results_count=len(paginated_results),
+                    page=page,
+                    page_size=page_size
+                )
+                await last_search_results_service.save_last_search_results(db, user_id, last_search_entry)
+            except Exception as last_search_error:
+                print(f"Failed to save last search results: {last_search_error}")
             
             # Send completion message
             yield f"data: {json.dumps({'type': 'complete', 'total_results': len(paginated_results)})}\n\n"
@@ -209,7 +255,7 @@ async def ai_search_connections_stream(
 @router.post("/search/progress")
 async def ai_search_connections_progress(
     search_request: SearchRequest,
-    current_user: dict = Depends(get_current_user),
+    current_user: UserPublic = Depends(get_current_user),
     db = Depends(get_database)
 ):
     """
@@ -229,7 +275,7 @@ async def ai_search_connections_progress(
 
         # Perform the actual search
         try:
-            user_id = current_user["id"]
+            user_id = current_user.id
             
             filter_dict = None
             if search_request.filters:
@@ -268,9 +314,23 @@ async def ai_search_connections_progress(
                     filters=search_request.filters.model_dump() if search_request.filters else None,
                     results_count=len(search_results)
                 )
-                await search_history_service.create_search_history_entry(db, UUID(user_id), history_entry)
+                await search_history_service.create_search_history_entry(db, user_id, history_entry)
             except Exception as history_error:
                 print(f"Failed to save search history: {history_error}")
+
+            # Save as last search results for persistence across sessions
+            try:
+                last_search_entry = LastSearchResultsCreate(
+                    query=search_request.query,
+                    filters=search_request.filters.model_dump() if search_request.filters else None,
+                    results=search_results,
+                    results_count=len(search_results),
+                    page=1,  # Progress endpoint doesn't use pagination
+                    page_size=len(search_results)
+                )
+                await last_search_results_service.save_last_search_results(db, user_id, last_search_entry)
+            except Exception as last_search_error:
+                print(f"Failed to save last search results: {last_search_error}")
 
             yield f"data: {json.dumps({'progress': 100, 'results': search_results})}\n\n"
 
@@ -322,7 +382,7 @@ def is_connection_in_date_range(connection: dict, start_date: Optional[str], end
     
     try:
         # Parse connection date (assuming format like "2023-01-15" or similar)
-        conn_date = datetime.fromisoformat(connected_on.replace('Z', ''))
+        conn_date = datetime.fromisoformat(connected_on)
         
         if start_date:
             start = datetime.fromisoformat(start_date)

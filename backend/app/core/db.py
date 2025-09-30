@@ -2,6 +2,8 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from .config import settings
 import logging
 from typing import Optional
+from bson.codec_options import CodecOptions
+from uuid import UUID
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -12,28 +14,45 @@ class Database:
 db = Database()
 
 async def connect_to_mongo():
-    logger.info("Connecting to MongoDB...")
+    """
+    Establishes a connection to MongoDB with standard UUID representation.
+    """
+    logger.info("Connecting to MongoDB with standard UUID representation...")
     try:
+        # Pass uuidRepresentation directly as a keyword argument
         db.client = AsyncIOMotorClient(
             settings.DATABASE_URL,
             tls=True,
-            tlsAllowInvalidCertificates=True
+            tlsAllowInvalidCertificates=True,
+            uuidRepresentation='standard'  # Use 'standard' for cross-language compatibility
         )
+        
         # The ismaster command is cheap and does not require auth.
         await db.client.admin.command('ismaster')
-        logger.info("Successfully connected to MongoDB.")
+        
+        # Log the configured UUID representation
+        db_instance = get_database()
+        logger.info(f"Successfully connected to MongoDB. UUID representation: {db_instance.codec_options.uuid_representation}")
+        
     except Exception as e:
-        logger.error(f"Could not connect to MongoDB: {e}")
-
+        logger.error(f"Could not connect to MongoDB: {e}", exc_info=True)
+        raise
 
 async def close_mongo_connection():
+    """
+    Closes the MongoDB connection.
+    """
     logger.info("Closing MongoDB connection...")
     if db.client:
         db.client.close()
     logger.info("MongoDB connection closed.")
 
 def get_database():
+    """
+    Returns the database instance, ensuring the client is initialized.
+    """
     if db.client is None:
         raise Exception("Database client not initialized. Call connect_to_mongo first.")
-    # Use the specific database name from settings
-    return db.client[settings.DATABASE_NAME]
+    
+    # Return the database with the correct codec options
+    return db.client.get_database(settings.DATABASE_NAME)

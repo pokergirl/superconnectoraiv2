@@ -66,7 +66,7 @@ async def validate_invitation(invitation_code: str, db=Depends(get_database)):
             detail="Invitation is no longer valid"
         )
     
-    if datetime.fromisoformat(invitation["expires_at"].replace('Z', '+00:00')) < datetime.utcnow():
+    if invitation["expires_at"] < datetime.utcnow():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invitation has expired"

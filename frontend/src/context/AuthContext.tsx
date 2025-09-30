@@ -15,18 +15,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const validateToken = async () => {
       const storedToken = localStorage.getItem('authToken');
       if (storedToken) {
+        // Set token immediately for better UX
+        setToken(storedToken);
+        
         try {
           const userProfile = await getUserProfile(storedToken);
-          setUser(userProfile);
-          setToken(storedToken);
-        } catch {
+          // Add default persist_search_results if not present
+          const userWithDefaults = {
+            ...userProfile,
+            persist_search_results: (userProfile as any).persist_search_results ?? false
+          };
+          setUser(userWithDefaults);
+        } catch (error) {
+          // Only clear token if it's actually invalid (401/403)
+          console.warn('Token validation failed:', error);
           localStorage.removeItem('authToken');
+          setToken(null);
+          setUser(null);
         }
       }
       setLoading(false);
     };
+    
+    // Only validate on mount, not on every render
     validateToken();
-  }, []);
+  }, []); // Empty dependency array ensures this runs only once
 
   const login = (newToken: string, newUser: User) => {
     localStorage.setItem('authToken', newToken);

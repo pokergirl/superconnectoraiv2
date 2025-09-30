@@ -10,40 +10,23 @@ import {
   SearchHistory
 } from "./types";
 
-// Determine the API base URL based on environment
+// Simple and reliable API base URL configuration
 const getApiBaseUrl = (): string => {
-  // If explicitly set, use that
+  // Always prefer explicit environment variable
   if (process.env.NEXT_PUBLIC_API_BASE_URL) {
     return process.env.NEXT_PUBLIC_API_BASE_URL;
   }
   
-  // In production, try to infer from the current domain
-  if (typeof window !== 'undefined') {
-    const { protocol, hostname } = window.location;
-    
-    // If we're on the production domain, use the production API
-    if (hostname === 'www.superconnectai.com' || hostname === 'superconnectai.com') {
-      return `${protocol}//api.superconnectai.com/api/v1`;
-    }
-    
-    // For other domains in production, try common patterns
-    if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
-      // Try subdomain pattern first
-      const apiSubdomain = `${protocol}//api.${hostname}/api/v1`;
-      return apiSubdomain;
-    }
+  // Simple production check
+  if (typeof window !== 'undefined' && window.location.hostname.includes('superconnectai.com')) {
+    return 'https://api.superconnectai.com/api/v1';
   }
   
-  // Fallback to localhost for development
-  return "http://localhost:8000/api/v1";
+  // Default to localhost for development
+  return 'http://localhost:8000/api/v1';
 };
 
 const API_BASE_URL = getApiBaseUrl();
-
-// Add logging for debugging in production
-if (typeof window !== 'undefined') {
-  console.log('API_BASE_URL configured as:', API_BASE_URL);
-}
 
 // Enhanced error handling wrapper
 const handleApiError = (error: unknown, context: string): never => {
@@ -261,7 +244,6 @@ async function clearPineconeData(token: string): Promise<{ message: string }> {
 
 // Real authentication implementations
 export async function loginUser(email: string, password: string): Promise<{ access_token: string; token_type: string } | { reset_token: string; token_type: string }> {
-  console.log('loginUser called - timestamp:', new Date().toISOString());
   try {
     const formData = new FormData();
     formData.append('username', email);
@@ -272,40 +254,24 @@ export async function loginUser(email: string, password: string): Promise<{ acce
       body: formData,
     });
 
-    console.log('Response status:', response.status);
-    console.log('Response ok:', response.ok);
-
     if (!response.ok) {
-      // For authentication errors, always try to get the detailed message
-      let errorMessage = 'Invalid email or password';
-      
-      try {
-        const responseText = await response.text();
-        console.log('Raw response text:', responseText);
-        
-        if (responseText) {
-          const errorData = JSON.parse(responseText);
-          console.log('Parsed error data:', errorData);
-          errorMessage = errorData.detail || errorMessage;
-        }
-      } catch (parseError) {
-        console.log('Failed to parse error response:', parseError);
-        // Use our default user-friendly message for auth errors
-        if (response.status === 401) {
-          errorMessage = 'Invalid email or password';
-        } else {
-          errorMessage = `HTTP error! status: ${response.status}`;
-        }
+      // Simple error handling for authentication
+      if (response.status === 401) {
+        throw new Error('Invalid email or password');
       }
       
-      console.log('Final error message:', errorMessage);
-      throw new Error(errorMessage);
+      // Try to get server error message
+      try {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || `Login failed with status: ${response.status}`);
+      } catch {
+        throw new Error(`Login failed with status: ${response.status}`);
+      }
     }
 
     return await response.json();
   } catch (error) {
-    console.log('Error in loginUser:', error);
-    // Don't use handleApiError for login errors to avoid additional processing
+    // Re-throw the error as-is for proper handling by the UI
     throw error;
   }
 }
@@ -605,7 +571,7 @@ export async function generateEmail(
   token: string
 ): Promise<{ subject: string; body: string; generated_at: string }> {
   // Mock implementation - replace with actual API call when backend is ready
-  console.log(connectionId, prompt, token); // Prevent unused parameter errors
+  console.log(connectionId, prompt, token); // Prevent unused parameter error
   return Promise.resolve({
     subject: "Introduction Request",
     body: "This is a generated email body based on your prompt.",
@@ -694,7 +660,7 @@ export async function deleteSearchHistoryEntry(
   token: string
 ): Promise<{ success: boolean }> {
   // Mock implementation - replace with actual API call when backend is ready
-  console.log(entryId, token); // Prevent unused parameter errors
+  console.log(entryId, token); // Prevent unused parameter error
   return Promise.resolve({ success: true });
 }
 
@@ -985,6 +951,104 @@ export async function getPendingCounts(token: string): Promise<{
     return await response.json();
   } catch (error) {
     return handleApiError(error, "getPendingCounts");
+  }
+}
+
+// Last Search Results API functions
+export async function getLastSearchResults(token: string): Promise<{
+  has_results: boolean;
+  data?: {
+    query: string;
+    filters?: Record<string, unknown>;
+    results: SearchResult[];
+    results_count: number;
+    page: number;
+    page_size: number;
+    created_at: string;
+    updated_at: string;
+  };
+}> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/last-search-results`, {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    return handleApiError(error, "getLastSearchResults");
+  }
+}
+
+export async function clearLastSearchResults(token: string): Promise<{ success: boolean }> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/last-search-results`, {
+      method: "DELETE",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to clear last search results:", error);
+    throw error;
+  }
+}
+
+export async function checkLastSearchResultsExist(token: string): Promise<{ has_results: boolean }> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/last-search-results/exists`, {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    return handleApiError(error, "checkLastSearchResultsExist");
+  }
+}
+
+export async function updateUserPreferences(
+  token: string,
+  preferences: { persist_search_results: boolean }
+): Promise<{ persist_search_results: boolean }> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/user_preferences/preferences`, {
+      method: "PUT",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(preferences),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    return handleApiError(error, "updateUserPreferences");
   }
 }
 

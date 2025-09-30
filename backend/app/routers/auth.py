@@ -37,7 +37,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         )
     
     # Check if user must change password
-    if user.get("must_change_password", False):
+    if user['must_change_password']:
         # Return password reset token instead of access token
         reset_token = await auth_service.create_password_reset_token(user["email"])
         return PasswordResetToken(reset_token=reset_token)
@@ -85,5 +85,11 @@ async def create_user_with_otp(
     return UserWithOTP(**user_public.model_dump(), otp=temp_password)
 
 @router.get("/users/me", response_model=UserPublic)
-async def read_users_me(current_user: dict = Depends(auth_service.get_current_user)):
+async def read_users_me(current_user: UserPublic = Depends(auth_service.get_current_user)):
     return current_user
+
+@router.post("/auth/logout", status_code=status.HTTP_204_NO_CONTENT)
+async def logout():
+    # This endpoint is primarily for the client to have a formal endpoint to call.
+    # Token invalidation is handled client-side by removing the token.
+    return
