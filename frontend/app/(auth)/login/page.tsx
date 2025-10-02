@@ -35,7 +35,12 @@ export default function LoginPage() {
       // Normal login flow
       const { access_token } = response;
       const userProfile = await getUserProfile(access_token);
-      login(access_token, userProfile);
+      // Add default persist_search_results if not present
+      const userWithDefaults = {
+        ...userProfile,
+        persist_search_results: (userProfile as any).persist_search_results ?? false
+      };
+      login(access_token, userWithDefaults);
       // Redirect is now handled by the PublicRoute wrapper
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'An unexpected error occurred.');

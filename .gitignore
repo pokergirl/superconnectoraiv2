@@ -37,7 +37,6 @@ lerna-debug.log*
 
 # Local env files
 .env*.local
-.env
 .env.development.local
 .env.test.local
 .env.production.local
@@ -95,3 +94,4 @@ pids
 *.seed
 *.pid.lock
 backend/.venv
+config.bat

@@ -278,7 +278,7 @@ const WarmIntroModal: React.FC<WarmIntroModalProps> = ({
     if (!isFormValid) {
       const firstErrorKeys = Object.keys(errors);
       if (firstErrorKeys.length > 0) {
-        const firstErrorId = firstErrorKeys;
+        const firstErrorId = firstErrorKeys[0];
         document.getElementById(firstErrorId)?.focus();
         document.getElementById(firstErrorId)?.scrollIntoView({ behavior: 'smooth' });
       }
