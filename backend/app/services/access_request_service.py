@@ -2,8 +2,10 @@ from fastapi import HTTPException, status
 from datetime import datetime
 from uuid import UUID
 from app.models.access_request import AccessRequestCreate, AccessRequestInDB, AccessRequestUpdate, AccessRequestStatus
-# SendGrid integration removed - using manual email templates now
-import os
+from app.services.email_service import email_service
+import logging
+
+logger = logging.getLogger(__name__)
 
 async def create_access_request(db, request_data: AccessRequestCreate):
     """Create a new access request"""
@@ -76,21 +78,18 @@ async def update_access_request(db, request_id: str, update_data: AccessRequestU
     # Return updated request
     updated_request = await get_access_request_by_id(db, request_id)
 
-    # Generate email template data for rejected status
+    # Automatically send rejection email if status is rejected
     if update_data.status == AccessRequestStatus.rejected:
-        template_path = os.path.join(os.path.dirname(__file__), '..', 'templates', 'access-denied.html')
-        with open(template_path, 'r') as f:
-            html_content = f.read()
+        email_sent = await email_service.send_rejection_email(
+            to_email=updated_request["email"],
+            recipient_name=updated_request["full_name"],
+            admin_notes=update_data.admin_notes
+        )
         
-        # Replace placeholder with actual name
-        email_body = html_content.replace("[First name]", updated_request['full_name'])
-        
-        # Store email template data in the response
-        updated_request["email_template"] = {
-            "to": updated_request["email"],
-            "subject": "Update on your access request",
-            "body": email_body
-        }
+        if email_sent:
+            logger.info(f"Rejection email sent to {updated_request['email']}")
+        else:
+            logger.error(f"Failed to send rejection email to {updated_request['email']}")
 
     return updated_request
 
@@ -147,23 +146,19 @@ async def approve_access_request_and_create_user(db, request_id: str, admin_id: 
         admin_id
     )
     
-    # Generate approval email template data
-    template_path = os.path.join(os.path.dirname(__file__), '..', 'templates', 'access-approved.html')
-    with open(template_path, 'r') as f:
-        html_content = f.read()
-
-    # Replace placeholders with actual values
-    email_body = html_content.replace("[Name]", request['full_name']).replace("[passcode]", temp_password)
-
-    # Create email template data
-    email_template = {
-        "to": request["email"],
-        "subject": "Your access request has been approved!",
-        "body": email_body,
-        "temp_password": temp_password
-    }
+    # Automatically send approval email with temporary password
+    email_sent = await email_service.send_approval_email(
+        to_email=request["email"],
+        recipient_name=request["full_name"],
+        temp_password=temp_password
+    )
     
-    return user_dict, temp_password, email_template
+    if email_sent:
+        logger.info(f"Approval email sent to {request['email']}")
+    else:
+        logger.error(f"Failed to send approval email to {request['email']}")
+    
+    return user_dict, temp_password
 
 async def count_pending_access_requests(db):
     """Count the number of pending access requests"""

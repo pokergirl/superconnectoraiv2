@@ -835,12 +835,7 @@ export async function approveAccessRequest(
     last_login?: string;
     otp: string;
   };
-  email_template: {
-    to: string;
-    subject: string;
-    body: string;
-    temp_password: string;
-  };
+  message: string;
 }> {
   try {
     const response = await fetch(`${API_BASE_URL}/admin/access-requests/${requestId}/approve`, {
@@ -876,11 +871,7 @@ export async function denyAccessRequest(
     created_at: string;
     processed_at?: string;
   };
-  email_template?: {
-    to: string;
-    subject: string;
-    body: string;
-  };
+  message: string;
 }> {
   try {
     const response = await fetch(`${API_BASE_URL}/admin/access-requests/${requestId}`, {

@@ -60,22 +60,10 @@ export default function AccessRequestsPage() {
       setProcessingId(requestId);
       const response = await approveAccessRequest(requestId, token);
       
-      // Open email client with pre-drafted approval email
-      if (response.email_template) {
-        const { to, subject, body } = response.email_template;
-        const mailtoLink = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-        window.open(mailtoLink, '_blank');
-        
-        toast({
-          title: "Request Approved",
-          description: "User created successfully. Your email client should open with a pre-drafted approval email.",
-        });
-      } else {
-        toast({
-          title: "Request Approved",
-          description: "User created successfully, but email template was not generated.",
-        });
-      }
+      toast({
+        title: "Request Approved",
+        description: response.message || "User created successfully and approval email sent automatically.",
+      });
       
       // Refresh the list
       await fetchRequests();
@@ -97,22 +85,10 @@ export default function AccessRequestsPage() {
       setProcessingId(request.id);
       const response = await denyAccessRequest(request.id, token, ''); // Empty reason since we're removing the modal
       
-      // Open email client with pre-drafted denial email
-      if (response.email_template) {
-        const { to, subject, body } = response.email_template;
-        const mailtoLink = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-        window.open(mailtoLink, '_blank');
-        
-        toast({
-          title: "Request Denied",
-          description: "Access request denied successfully. Your email client should open with a pre-drafted denial email.",
-        });
-      } else {
-        toast({
-          title: "Request Denied",
-          description: "Access request denied successfully, but email template was not generated.",
-        });
-      }
+      toast({
+        title: "Request Denied",
+        description: response.message || "Access request denied and rejection email sent automatically.",
+      });
       
       // Refresh the list
       await fetchRequests();

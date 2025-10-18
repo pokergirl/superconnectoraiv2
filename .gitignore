@@ -95,3 +95,6 @@ pids
 *.seed
 *.pid.lock
 backend/.venv
+
+
+*.md

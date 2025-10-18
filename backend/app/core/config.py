@@ -37,6 +37,12 @@ class Settings(BaseSettings):
     FROM_NAME: str = os.getenv("FROM_NAME", "Superconnector Team")
     FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:3000")
     
+    # SMTP Configuration (for automated email sending)
+    SMTP_USER: str = os.getenv("SMTP_USER", "")
+    SMTP_PASSWORD: str = os.getenv("SMTP_PASSWORD", "")
+    SMTP_HOST: str = os.getenv("SMTP_HOST", "smtp.gmail.com")
+    SMTP_PORT: int = int(os.getenv("SMTP_PORT", "587"))
+    
     def validate_api_keys(self) -> dict:
         """
         Validate API keys and return status information.
