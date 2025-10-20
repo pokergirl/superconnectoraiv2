@@ -3,9 +3,27 @@ from datetime import datetime
 from uuid import UUID
 from app.models.access_request import AccessRequestCreate, AccessRequestInDB, AccessRequestUpdate, AccessRequestStatus
 from app.services.email_service import email_service
+from app.services.email_service_resend import resend_email_service
+from app.core.config import settings
 import logging
 
 logger = logging.getLogger(__name__)
+
+# Choose email service based on configuration
+# If SMTP_HOST contains "resend" or we're using Resend API key format, use Resend
+def get_email_service():
+    """Get the appropriate email service based on configuration"""
+    # Check if using Resend (API key format starts with "re_")
+    if settings.SMTP_PASSWORD and settings.SMTP_PASSWORD.startswith("re_"):
+        logger.info("Using Resend email service")
+        return resend_email_service
+    # Otherwise use SMTP
+    else:
+        logger.info("Using SMTP email service")
+        return email_service
+
+# Get the email service instance
+email_service_instance = get_email_service()
 
 async def create_access_request(db, request_data: AccessRequestCreate):
     """Create a new access request"""
@@ -80,7 +98,7 @@ async def update_access_request(db, request_id: str, update_data: AccessRequestU
 
     # Automatically send rejection email if status is rejected
     if update_data.status == AccessRequestStatus.rejected:
-        email_sent = await email_service.send_rejection_email(
+        email_sent = await email_service_instance.send_rejection_email(
             to_email=updated_request["email"],
             recipient_name=updated_request["full_name"],
             admin_notes=update_data.admin_notes
@@ -147,7 +165,7 @@ async def approve_access_request_and_create_user(db, request_id: str, admin_id: 
     )
     
     # Automatically send approval email with temporary password
-    email_sent = await email_service.send_approval_email(
+    email_sent = await email_service_instance.send_approval_email(
         to_email=request["email"],
         recipient_name=request["full_name"],
         temp_password=temp_password

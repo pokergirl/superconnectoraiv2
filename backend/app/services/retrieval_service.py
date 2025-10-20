@@ -416,6 +416,8 @@ Example format:
     ) -> List[Dict[str, Any]]:
         """
         Main service orchestration method that ties all steps together.
+        Now searches both user's namespace and admin's namespace to allow all users
+        to access admin connections.
         
         Args:
             user_query: Original user query
@@ -437,19 +439,60 @@ Example format:
             # Step 2: Generate embedding for the query
             query_embedding = await gemini_embeddings_service.generate_embedding(processed_query)
             
-            # Step 3: Execute hybrid query against Pinecone
-            candidate_profiles = await self.hybrid_pinecone_query(
+            # Step 3: Get admin user_id to search admin's namespace
+            admin_namespace = None
+            try:
+                from app.core.db import get_database
+                db = get_database()
+                admin_user = await db.users.find_one({"email": "admin@superconnect.ai"})
+                if admin_user:
+                    admin_namespace = str(admin_user.get("id") or admin_user.get("_id"))
+                    logger.info(f"Found admin namespace: {admin_namespace}")
+            except Exception as e:
+                logger.warning(f"Could not fetch admin user: {e}")
+            
+            # Step 4: Execute hybrid query against Pinecone - search both user and admin namespaces
+            candidate_profiles = []
+            
+            # First, try user's own namespace
+            user_profiles = await self.hybrid_pinecone_query(
                 vector=query_embedding,
                 top_k=30,
                 alpha=0.6,
                 filter_dict=filter_dict,
                 namespace=namespace
             )
+            candidate_profiles.extend(user_profiles)
+            logger.info(f"Found {len(user_profiles)} profiles in user namespace: {namespace}")
+            
+            # Then, search admin's namespace if it exists and is different from user's
+            if admin_namespace and admin_namespace != namespace:
+                admin_profiles = await self.hybrid_pinecone_query(
+                    vector=query_embedding,
+                    top_k=30,
+                    alpha=0.6,
+                    filter_dict=filter_dict,
+                    namespace=admin_namespace
+                )
+                candidate_profiles.extend(admin_profiles)
+                logger.info(f"Found {len(admin_profiles)} profiles in admin namespace: {admin_namespace}")
+            
+            # Remove duplicates based on profile ID
+            seen_ids = set()
+            unique_profiles = []
+            for profile in candidate_profiles:
+                profile_id = profile.get('id') or profile.get('profile_id')
+                if profile_id and profile_id not in seen_ids:
+                    seen_ids.add(profile_id)
+                    unique_profiles.append(profile)
+            
+            candidate_profiles = unique_profiles
+            logger.info(f"Total unique profiles after deduplication: {len(candidate_profiles)}")
             
             if not candidate_profiles:
                 logger.warning("No profiles found in Pinecone query, falling back to MongoDB search")
                 # Fallback to MongoDB text search when Pinecone returns no results
-                candidate_profiles = await self.fallback_mongodb_search(user_query, namespace, filter_dict)
+                candidate_profiles = await self.fallback_mongodb_search(user_query, namespace, filter_dict, admin_namespace)
                 if not candidate_profiles:
                     logger.warning("No profiles found in MongoDB fallback either")
                     return []
@@ -484,25 +527,32 @@ Example format:
         self,
         user_query: str,
         user_id: str,
-        filter_dict: Optional[Dict[str, Any]] = None
+        filter_dict: Optional[Dict[str, Any]] = None,
+        admin_user_id: Optional[str] = None
     ) -> List[Dict[str, Any]]:
         """
         Fallback MongoDB text search when Pinecone fails or returns no results.
         Uses MongoDB's text search capabilities on connection data.
+        Now searches both user's connections and admin's connections.
         """
         try:
             from app.core.db import get_database
             db = get_database()
             
-            # Build MongoDB query - start with empty query for testing
+            # Build MongoDB query - search both user and admin connections
             mongo_query = {}
             
+            # Build user_id filter to include both current user and admin
+            user_ids_to_search = [user_id]
+            if admin_user_id and admin_user_id != user_id:
+                user_ids_to_search.append(admin_user_id)
+            
             # Only filter by user_id if connections actually have user_id field
-            # For testing purposes, we'll search all connections if no user_id field exists
             try:
                 user_id_count = await db.connections.count_documents({"user_id": {"$exists": True}})
                 if user_id_count > 0:
-                    mongo_query["user_id"] = user_id
+                    mongo_query["user_id"] = {"$in": user_ids_to_search}
+                    logger.info(f"Searching connections for user_ids: {user_ids_to_search}")
                 else:
                     logger.info("No connections have user_id field, searching all connections for testing")
             except Exception as e:

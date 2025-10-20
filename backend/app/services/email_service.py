@@ -101,12 +101,18 @@ class EmailService:
         """
         subject = "Your access request has been approved!"
         
+        app_url = settings.FRONTEND_URL or "https://superconnector.ai"
+        login_url = f"{app_url}/login"
+        
         body = f"""Hi {recipient_name},
 
 Your access to SuperConnect.ai has been approved, and I'm so glad to have you here!
 
 Here's your temporary passcode to log in: {temp_password}
 (You'll be prompted to create a new password once you're in.)
+
+Log in here: {login_url}
+Or visit: {app_url}
 
 SuperConnect.ai is a passion project we built to help leaders like you spark meaningful connections. To keep it alive, it depends on your support. If you find the connections valuable, there's an option to leave a tip. Every contribution helps sustain and grow this community-driven effort.
 
@@ -138,6 +144,7 @@ Ha & the SuperConnect.ai team"""
         """
         subject = "Update on your access request"
         
+        app_url = settings.FRONTEND_URL or "https://superconnector.ai"
         notes_section = f"\n\nNote: {admin_notes}" if admin_notes else ""
         
         body = f"""Hi {recipient_name},
@@ -147,6 +154,8 @@ Thank you for your interest in SuperConnect.ai.
 Unfortunately, we're unable to approve your access request at this time.{notes_section}
 
 We appreciate your understanding and encourage you to reach out if you have any questions.
+
+Visit us at: {app_url}
 
 Best regards,
 The SuperConnect.ai Team"""

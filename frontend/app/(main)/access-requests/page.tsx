@@ -222,9 +222,6 @@ export default function AccessRequestsPage() {
                       </Button>
                     </div>
                   )}
-                  <p className="text-xs text-gray-500 mt-2">
-                    📧 Your email client will open with a pre-drafted email to send to the user
-                  </p>
                 </div>
               </CardContent>
             </Card>

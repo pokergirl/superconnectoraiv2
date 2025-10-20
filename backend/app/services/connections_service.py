@@ -77,8 +77,24 @@ async def process_and_store_connections(db, file: UploadFile, user_id: UUID):
     return len(records_to_insert)
 
 async def get_user_connections(db, user_id: UUID, page: int = 1, limit: int = 100, min_rating: int = None):
+    """
+    Get user connections including both user's own connections and admin's connections.
+    This allows all users to browse the total available connections.
+    """
     skip = (page - 1) * limit
-    query = {"user_id": str(user_id)}
+    
+    # Get admin user_id to include admin connections
+    admin_user = await db.users.find_one({"email": "admin@superconnect.ai"})
+    admin_user_id = None
+    if admin_user:
+        admin_user_id = str(admin_user.get("id") or admin_user.get("_id"))
+    
+    # Build query to include both user and admin connections
+    user_ids_to_search = [str(user_id)]
+    if admin_user_id and admin_user_id != str(user_id):
+        user_ids_to_search.append(admin_user_id)
+    
+    query = {"user_id": {"$in": user_ids_to_search}}
     if min_rating is not None:
         query["rating"] = {"$gte": min_rating}
     
@@ -108,15 +124,30 @@ async def delete_user_connections(db, user_id: UUID):
     return result.deleted_count
 
 async def get_user_connections_count(db, user_id: UUID):
-    # First try to count connections with user_id
-    count_with_user_id = await db.connections.count_documents({"user_id": str(user_id)})
+    """
+    Get total connections count including both user's own connections and admin's connections.
+    This allows all users to see the total available connections.
+    """
+    # Get admin user_id
+    admin_user = await db.users.find_one({"email": "admin@superconnect.ai"})
+    admin_user_id = None
+    if admin_user:
+        admin_user_id = str(admin_user.get("id") or admin_user.get("_id"))
+    
+    # Build list of user_ids to count
+    user_ids_to_count = [str(user_id)]
+    if admin_user_id and admin_user_id != str(user_id):
+        user_ids_to_count.append(admin_user_id)
+    
+    # Count connections for both user and admin
+    total_count = await db.connections.count_documents({"user_id": {"$in": user_ids_to_count}})
     
     # If no connections found with user_id, check if there are connections without user_id
     # This handles the case where connections were imported without user_id assignment
-    if count_with_user_id == 0:
+    if total_count == 0:
         count_without_user_id = await db.connections.count_documents({"user_id": {"$exists": False}})
         if count_without_user_id > 0:
             # Return total connections without user_id for testing/demo purposes
             return count_without_user_id
     
-    return count_with_user_id
+    return total_count
