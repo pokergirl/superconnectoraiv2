@@ -37,11 +37,19 @@ class Settings(BaseSettings):
     FROM_NAME: str = os.getenv("FROM_NAME", "Superconnector Team")
     FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:3000")
     
+    # Email Service Selection
+    EMAIL_SERVICE: str = os.getenv("EMAIL_SERVICE", "gmail_api")  # Options: "gmail_api", "smtp"
+    
     # SMTP Configuration (for automated email sending)
     SMTP_USER: str = os.getenv("SMTP_USER", "")
     SMTP_PASSWORD: str = os.getenv("SMTP_PASSWORD", "")
     SMTP_HOST: str = os.getenv("SMTP_HOST", "smtp.gmail.com")
     SMTP_PORT: int = int(os.getenv("SMTP_PORT", "587"))
+    
+    # Gmail API Configuration
+    GMAIL_CREDENTIALS_FILE: str = os.getenv("GMAIL_CREDENTIALS_FILE", "credentials.json")
+    GMAIL_TOKEN_FILE: str = os.getenv("GMAIL_TOKEN_FILE", "token.json")
+    GMAIL_SCOPES: list = ['https://www.googleapis.com/auth/gmail.send']
     
     def validate_api_keys(self) -> dict:
         """

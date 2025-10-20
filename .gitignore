@@ -65,6 +65,10 @@ coverage.xml
 .hypothesis/
 .mypy_cache
 
+# Gmail API Credentials
+credentials.json
+token.json
+
 # Database
 *.db
 *.sqlite

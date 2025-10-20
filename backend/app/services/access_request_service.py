@@ -2,27 +2,13 @@ from fastapi import HTTPException, status
 from datetime import datetime
 from uuid import UUID
 from app.models.access_request import AccessRequestCreate, AccessRequestInDB, AccessRequestUpdate, AccessRequestStatus
-from app.services.email_service import email_service
-from app.services.email_service_resend import resend_email_service
+from app.services.email_service import get_email_service
 from app.core.config import settings
 import logging
 
 logger = logging.getLogger(__name__)
 
-# Choose email service based on configuration
-# If SMTP_HOST contains "resend" or we're using Resend API key format, use Resend
-def get_email_service():
-    """Get the appropriate email service based on configuration"""
-    # Check if using Resend (API key format starts with "re_")
-    if settings.SMTP_PASSWORD and settings.SMTP_PASSWORD.startswith("re_"):
-        logger.info("Using Resend email service")
-        return resend_email_service
-    # Otherwise use SMTP
-    else:
-        logger.info("Using SMTP email service")
-        return email_service
-
-# Get the email service instance
+# Get the email service instance (Gmail API or SMTP)
 email_service_instance = get_email_service()
 
 async def create_access_request(db, request_data: AccessRequestCreate):

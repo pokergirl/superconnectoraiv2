@@ -8,12 +8,12 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 
 class EmailService:
-    """Service for sending emails using smtplib with proper SSL/TLS handling"""
+    """Service for sending emails using smtplib with proper SSL/TLS handling (fallback when Gmail API is not available)"""
     
     def __init__(self):
         """Initialize email service"""
         if settings.SMTP_USER and settings.SMTP_PASSWORD:
-            logger.info(f"Email service initialized with {settings.SMTP_HOST}:{settings.SMTP_PORT}")
+            logger.info(f"SMTP email service initialized with {settings.SMTP_HOST}:{settings.SMTP_PORT}")
         else:
             logger.warning("SMTP credentials not configured. Email sending will be simulated.")
     
@@ -199,5 +199,24 @@ The SuperConnect.ai Team"""
 
 # Create a singleton instance
 email_service = EmailService()
+
+# Import Gmail service
+from app.services.gmail_service import gmail_service
+
+def get_email_service():
+    """
+    Get the appropriate email service based on configuration
+    
+    Returns:
+        GmailService if EMAIL_SERVICE is 'gmail_api' and available, otherwise SMTP EmailService
+    """
+    if settings.EMAIL_SERVICE == "gmail_api" and gmail_service.is_available():
+        logger.info("Using Gmail API for email sending")
+        return gmail_service
+    else:
+        if settings.EMAIL_SERVICE == "gmail_api":
+            logger.warning("Gmail API requested but not available. Falling back to SMTP.")
+        logger.info("Using SMTP for email sending")
+        return email_service
 
 

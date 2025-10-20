@@ -81,9 +81,8 @@ async def send_follow_up_email(db, follow_up_id: str) -> bool:
             follow_up["facilitator_email"]
         )
         
-        # In a real implementation, you would send the email here
-        # For now, we'll simulate sending the email
-        success = await simulate_email_send(
+        # Send the email using the configured email service
+        success = await send_email_via_service(
             to_email=follow_up["requester_email"],
             subject=f"Follow-up: Connection with {follow_up['connection_name']}",
             content=email_content
@@ -151,24 +150,30 @@ Warmly,
 Ha
 """
 
-async def simulate_email_send(to_email: str, subject: str, content: str) -> bool:
-    """Simulate sending an email - in production, integrate with actual email service"""
+async def send_email_via_service(to_email: str, subject: str, content: str) -> bool:
+    """Send an email using the configured email service (Gmail API or SMTP)"""
     try:
-        # Simulate email sending delay
-        await asyncio.sleep(0.1)
+        from app.services.email_service import get_email_service
         
-        # Log the email (in production, you'd use a real email service like Resend, AWS SES, etc.)
-        logger.info(f"SIMULATED EMAIL SENT:")
-        logger.info(f"To: {to_email}")
-        logger.info(f"Subject: {subject}")
-        logger.info(f"Content: {content[:100]}...")
+        email_service = get_email_service()
         
-        # Simulate 95% success rate
-        import random
-        return random.random() < 0.95
+        # Send the email
+        success = await email_service.send_email(
+            to_email=to_email,
+            subject=subject,
+            body=content,
+            html=True
+        )
+        
+        if success:
+            logger.info(f"Email sent successfully to {to_email}")
+        else:
+            logger.error(f"Failed to send email to {to_email}")
+        
+        return success
         
     except Exception as e:
-        logger.error(f"Error simulating email send: {str(e)}")
+        logger.error(f"Error sending email to {to_email}: {str(e)}")
         return False
 
 async def process_pending_follow_ups():
