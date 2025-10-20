@@ -1,6 +1,8 @@
 import logging
 import os
 import base64
+import json
+import tempfile
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from typing import Optional
