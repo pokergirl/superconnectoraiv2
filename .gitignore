@@ -68,6 +68,8 @@ coverage.xml
 # Gmail API Credentials
 credentials.json
 token.json
+credentials_base64.txt
+token_base64.txt
 
 # Database
 *.db

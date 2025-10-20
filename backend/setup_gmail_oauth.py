@@ -82,7 +82,7 @@ def setup_gmail_oauth():
                     'credentials.json', 
                     SCOPES
                 )
-                creds = flow.run_local_server(port=0)
+                creds = flow.run_local_server(port=8000)
                 print("✅ Authentication successful!")
             except Exception as e:
                 print(f"❌ Authentication failed: {e}")
@@ -100,18 +100,21 @@ def setup_gmail_oauth():
         from googleapiclient.discovery import build
         service = build('gmail', 'v1', credentials=creds)
         
-        # Try to get user profile
-        profile = service.users().getProfile(userId='me').execute()
-        email_address = profile.get('emailAddress')
-        
-        print(f"✅ Successfully authenticated as: {email_address}")
-        print("\n🎉 Gmail API setup complete!")
-        print("\n📧 You can now send emails using the Gmail API.")
-        print("\n💡 Tips:")
-        print("   - The token.json file contains your authentication credentials")
-        print("   - Keep it secure and never commit it to version control")
-        print("   - The token will automatically refresh when it expires")
-        print("   - If you need to re-authenticate, delete token.json and run this script again")
+        # Verify the service was created successfully
+        # We can't check profile with gmail.send scope, so we just verify service exists
+        if service:
+            print(f"✅ Gmail API service initialized successfully")
+            print("\n🎉 Gmail API setup complete!")
+            print("\n📧 You can now send emails using the Gmail API.")
+            print("\n💡 Tips:")
+            print("   - The token.json file contains your authentication credentials")
+            print("   - Keep it secure and never commit it to version control")
+            print("   - The token will automatically refresh when it expires")
+            print("   - If you need to re-authenticate, delete token.json and run this script again")
+            print("\n📝 Next steps:")
+            print("   1. Test the integration: python test_gmail_api.py")
+            print("   2. For production (Render), run: python encode_gmail_credentials.py")
+            print("   3. Add environment variables to Render dashboard")
         
         return True
         
