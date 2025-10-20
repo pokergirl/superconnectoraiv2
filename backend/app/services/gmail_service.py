@@ -25,9 +25,9 @@ class GmailService:
     def _initialize_service(self):
         """Initialize Gmail service with OAuth2 credentials"""
         try:
-            # Check if credentials file exists
-            if not os.path.exists(settings.GMAIL_CREDENTIALS_FILE):
-                logger.warning(f"Gmail credentials file not found: {settings.GMAIL_CREDENTIALS_FILE}")
+            # Check if credentials are available (from file or environment)
+            if not self._has_credentials():
+                logger.warning("Gmail credentials not found")
                 logger.warning("Gmail API will not be available. Please set up credentials.")
                 return
             
@@ -46,18 +46,82 @@ class GmailService:
         except Exception as e:
             logger.error(f"Failed to initialize Gmail service: {str(e)}")
     
+    def _has_credentials(self) -> bool:
+        """Check if Gmail credentials are available (from file or environment)"""
+        # Check if credentials are in environment variables (Render/Cloud)
+        if os.getenv("GMAIL_CREDENTIALS_BASE64"):
+            return True
+        
+        # Check if credentials file exists
+        if os.path.exists(settings.GMAIL_CREDENTIALS_FILE):
+            return True
+        
+        return False
+    
+    def _get_credentials_path(self) -> str:
+        """Get path to credentials file, creating from environment if needed"""
+        # Check if credentials are in environment variables (Render/Cloud)
+        if os.getenv("GMAIL_CREDENTIALS_BASE64"):
+            try:
+                # Decode base64 credentials
+                creds_data = base64.b64decode(os.getenv("GMAIL_CREDENTIALS_BASE64")).decode('utf-8')
+                creds_json = json.loads(creds_data)
+                
+                # Create temporary file
+                temp_fd, temp_path = tempfile.mkstemp(suffix='.json', prefix='gmail_creds_')
+                with os.fdopen(temp_fd, 'w') as f:
+                    json.dump(creds_json, f)
+                
+                logger.info("Loaded Gmail credentials from environment variables")
+                return temp_path
+            except Exception as e:
+                logger.error(f"Error loading credentials from environment: {e}")
+                raise
+        
+        # Return regular file path
+        return settings.GMAIL_CREDENTIALS_FILE
+    
+    def _get_token_path(self) -> Optional[str]:
+        """Get path to token file, creating from environment if needed"""
+        # Check if token is in environment variables (Render/Cloud)
+        if os.getenv("GMAIL_TOKEN_BASE64"):
+            try:
+                # Decode base64 token
+                token_data = base64.b64decode(os.getenv("GMAIL_TOKEN_BASE64")).decode('utf-8')
+                token_json = json.loads(token_data)
+                
+                # Create temporary file
+                temp_fd, temp_path = tempfile.mkstemp(suffix='.json', prefix='gmail_token_')
+                with os.fdopen(temp_fd, 'w') as f:
+                    json.dump(token_json, f)
+                
+                logger.info("Loaded Gmail token from environment variables")
+                return temp_path
+            except Exception as e:
+                logger.error(f"Error loading token from environment: {e}")
+                return None
+        
+        # Return regular file path
+        if os.path.exists(settings.GMAIL_TOKEN_FILE):
+            return settings.GMAIL_TOKEN_FILE
+        
+        return None
+    
     def _load_or_create_credentials(self):
         """Load existing credentials or create new ones if needed"""
         creds = None
         
-        # Check if token file exists
-        if os.path.exists(settings.GMAIL_TOKEN_FILE):
+        # Get token path (from file or environment)
+        token_path = self._get_token_path()
+        
+        # Check if token exists
+        if token_path:
             try:
                 creds = Credentials.from_authorized_user_file(
-                    settings.GMAIL_TOKEN_FILE, 
+                    token_path, 
                     settings.GMAIL_SCOPES
                 )
-                logger.info("Loaded existing Gmail credentials from token file")
+                logger.info("Loaded existing Gmail credentials from token")
             except Exception as e:
                 logger.error(f"Error loading credentials: {str(e)}")
         
