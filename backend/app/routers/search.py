@@ -145,8 +145,24 @@ async def ai_search_connections_stream(
         try:
             user_id = current_user.id
             
-            # Send initial status
-            yield f"data: {json.dumps({'type': 'status', 'message': 'Starting search...'})}\n\n"
+            # Get vector counts from Pinecone to show actual search scope
+            try:
+                admin_user = await db.users.find_one({"email": "admin@superconnect.ai"})
+                admin_namespace = None
+                if admin_user:
+                    admin_namespace = str(admin_user.get("id") or admin_user.get("_id"))
+                
+                user_vector_count = retrieval_service.get_namespace_vector_count(str(user_id))
+                admin_vector_count = retrieval_service.get_namespace_vector_count(admin_namespace) if admin_namespace else 0
+                total_vectors = user_vector_count + admin_vector_count
+                
+                if total_vectors > 0:
+                    yield f"data: {json.dumps({'type': 'status', 'message': f'Searching {total_vectors:,} connections in Pinecone...'})}\n\n"
+                else:
+                    yield f"data: {json.dumps({'type': 'status', 'message': 'Starting search...'})}\n\n"
+            except Exception as e:
+                print(f"Could not get vector counts: {e}")
+                yield f"data: {json.dumps({'type': 'status', 'message': 'Starting search...'})}\n\n"
             
             # Convert filters to the format expected by the retrieval service
             filter_dict = None
@@ -268,21 +284,45 @@ async def ai_search_connections_progress(
         )
 
     async def progress_generator():
-        # Simulate progress
-        for i in range(5):
-            await asyncio.sleep(0.5)
-            yield f"data: {json.dumps({'progress': (i + 1) * 10})}\n\n"
-
         # Perform the actual search
         try:
             user_id = current_user.id
+            
+            # Get vector counts from Pinecone to show actual search scope
+            try:
+                # Get admin namespace
+                admin_user = await db.users.find_one({"email": "admin@superconnect.ai"})
+                admin_namespace = None
+                if admin_user:
+                    admin_namespace = str(admin_user.get("id") or admin_user.get("_id"))
+                
+                # Get vector counts
+                user_vector_count = retrieval_service.get_namespace_vector_count(str(user_id))
+                admin_vector_count = retrieval_service.get_namespace_vector_count(admin_namespace) if admin_namespace else 0
+                total_vectors = user_vector_count + admin_vector_count
+                
+                if total_vectors > 0:
+                    yield f"data: {json.dumps({'progress': 10, 'message': f'Searching {total_vectors:,} connections in Pinecone...'})}\n\n"
+                else:
+                    yield f"data: {json.dumps({'progress': 10, 'message': 'Starting search...'})}\n\n"
+            except Exception as e:
+                print(f"Could not get vector counts: {e}")
+                yield f"data: {json.dumps({'progress': 10, 'message': 'Starting search...'})}\n\n"
+            
+            await asyncio.sleep(0.3)
+            yield f"data: {json.dumps({'progress': 20, 'message': 'Generating embeddings...'})}\n\n"
+            await asyncio.sleep(0.3)
+            yield f"data: {json.dumps({'progress': 30, 'message': 'Querying vector database...'})}\n\n"
+            await asyncio.sleep(0.3)
+            yield f"data: {json.dumps({'progress': 40, 'message': 'Finding relevant matches...'})}\n\n"
+            await asyncio.sleep(0.3)
             
             filter_dict = None
             if search_request.filters:
                 filter_dict = convert_search_filters_to_pinecone_filter(search_request.filters)
             
-            yield f"data: {json.dumps({'progress': 60, 'message': 'Reranking results...'})}\n\n"
-            await asyncio.sleep(1)
+            yield f"data: {json.dumps({'progress': 60, 'message': 'AI re-ranking results...'})}\n\n"
+            await asyncio.sleep(0.5)
 
             reranked_results = await retrieval_service.retrieve_and_rerank(
                 user_query=search_request.query,

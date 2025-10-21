@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { searchConnectionsWithProgress, getConnectionsCount, createSavedSearch, getLastSearchResults, clearLastSearchResults } from '@/lib/api';
+import { searchConnectionsWithProgress, getConnectionsCount, getPineconeVectorCount, createSavedSearch, getLastSearchResults, clearLastSearchResults } from '@/lib/api';
 import { SearchResult, Connection } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { AutoExpandingTextarea } from '@/components/ui/auto-expanding-textarea';
@@ -48,9 +48,15 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (token) {
-      getConnectionsCount(token)
+      getPineconeVectorCount(token)
         .then(data => setConnectionsCount(data.count))
-        .catch(err => console.error("Failed to fetch connections count:", err));
+        .catch(err => {
+          console.error("Failed to fetch Pinecone vector count:", err);
+          // Fallback to MongoDB count if Pinecone fails
+          getConnectionsCount(token)
+            .then(data => setConnectionsCount(data.count))
+            .catch(err => console.error("Failed to fetch connections count:", err));
+        });
       
     }
   }, [token, user?.role]);

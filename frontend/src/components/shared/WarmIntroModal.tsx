@@ -785,7 +785,8 @@ const WarmIntroModal: React.FC<WarmIntroModalProps> = ({
             </Button>
           </div>
           <p className="text-xs text-gray-500 text-center">
-            We will not share your contact info without your consent.
+            {/* We will not share your contact info without your consent. */}
+  z          Your name, email, and LinkedIn profile will be shared with {targetFirstName} and Ha.
           </p>
         </div>
       </DialogContent>

@@ -511,6 +511,31 @@ export async function getConnectionsCount(token: string): Promise<{ count: numbe
   }
 }
 
+export async function getPineconeVectorCount(token: string): Promise<{ 
+  count: number; 
+  admin_vectors: number; 
+  source: string; 
+}> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/connections/pinecone-count`, {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Failed to get Pinecone vector count:", error);
+    throw error;
+  }
+}
+
 export async function createSavedSearch(
   name: string,
   query: string,

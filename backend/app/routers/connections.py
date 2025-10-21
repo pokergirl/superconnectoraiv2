@@ -136,6 +136,36 @@ async def get_connections_count(
     count = await connections_service.get_user_connections_count(db, user_id)
     return {"count": count}
 
+@router.get("/connections/pinecone-count")
+async def get_pinecone_vector_count(
+    current_user: UserPublic = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """
+    Get the actual number of vectors being searched in Pinecone.
+    This shows the real search scope, not just MongoDB connection count.
+    Returns only admin vectors since that's what users actually search.
+    """
+    user_id = current_user.id
+    
+    # Get admin namespace
+    admin_user = await db.users.find_one({"email": "admin@superconnect.ai"})
+    admin_namespace = None
+    if admin_user:
+        admin_namespace = str(admin_user.get("id") or admin_user.get("_id"))
+    
+    # Get vector counts from Pinecone
+    from app.services.retrieval_service import retrieval_service
+    
+    # Only return admin vectors since that's what users search
+    admin_vector_count = retrieval_service.get_namespace_vector_count(admin_namespace) if admin_namespace else 0
+    
+    return {
+        "count": admin_vector_count,
+        "admin_vectors": admin_vector_count,
+        "source": "pinecone"
+    }
+
 @router.delete("/connections", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_connections(
     current_user: UserPublic = Depends(get_current_user),

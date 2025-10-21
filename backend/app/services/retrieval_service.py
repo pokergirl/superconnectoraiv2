@@ -59,6 +59,35 @@ class RetrievalService:
         self.TOTAL_TOKEN_LIMIT = 128000
         self.ESTIMATED_PROMPT_TOKENS = 500  # Conservative estimate for system prompt + user query
         self.ESTIMATED_AVG_PROFILE_TOKENS = 200  # Conservative estimate per profile
+    
+    def get_namespace_vector_count(self, namespace: str) -> int:
+        """
+        Get the number of vectors in a specific Pinecone namespace.
+        
+        Args:
+            namespace: The namespace to check
+            
+        Returns:
+            Number of vectors in the namespace, or 0 if unable to determine
+        """
+        try:
+            if not self.index:
+                return 0
+            
+            stats = self.index.describe_index_stats()
+            
+            if hasattr(stats, 'namespaces') and stats.namespaces and namespace in stats.namespaces:
+                ns_stats = stats.namespaces[namespace]
+                return ns_stats.vector_count if hasattr(ns_stats, 'vector_count') else 0
+            
+            # If namespace info not available but this is the only namespace, return total
+            if stats.total_vector_count and len(stats.namespaces) == 1:
+                return stats.total_vector_count
+            
+            return 0
+        except Exception as e:
+            logger.warning(f"Could not get namespace vector count: {e}")
+            return 0
         
     async def rewrite_query_with_llm(self, verbose_query: str, enable_rewrite: bool = True) -> str:
         """
