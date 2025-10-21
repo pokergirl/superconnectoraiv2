@@ -285,13 +285,6 @@ const EnhancedWarmIntroModal: React.FC<EnhancedWarmIntroModalProps> = ({
       await createWarmIntroRequest(
         requesterName,
         `${targetFirstName} ${targetLastName}`,
-        reason,
-        about,
-        requesterLinkedIn,
-        email,
-        targetFirstName,
-        targetLastName,
-        linkedinUrl,
         WarmIntroStatus.pending,
         token!
       );
