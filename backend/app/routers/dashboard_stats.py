@@ -20,10 +20,9 @@ async def get_pending_counts(
         # Get current user ID
         user_id = current_admin.id
         
-        # Get pending warm intro requests count for current user
+        # Get pending warm intro requests count for all users (admin sees all requests)
         warm_intro_count = await db.warm_intro_requests.count_documents({
-            "status": "pending",
-            "user_id": str(user_id)
+            "status": "pending"
         })
         
         # Get pending follow-up emails count (scheduled status AND due now)

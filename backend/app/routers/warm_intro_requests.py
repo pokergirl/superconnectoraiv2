@@ -7,7 +7,8 @@ from pydantic import BaseModel
 import csv
 import io
 
-from app.services.auth_service import get_current_user
+from app.services.auth_service import get_current_user, get_current_admin_user
+from app.models.user import UserRole
 from app.services import warm_intro_requests_service
 from app.models.warm_intro_request import WarmIntroStatus
 from app.services.follow_up_email_service import schedule_follow_up_email
@@ -109,20 +110,30 @@ async def get_warm_intro_requests(
     status_filter: Optional[WarmIntroStatus] = Query(None, alias="status", description="Filter by status")
 ):
     """
-    Get paginated warm intro requests for the current user.
+    Get paginated warm intro requests.
     
-    Requires authentication. Only returns requests belonging to the current user.
+    For admin users: returns all warm intro requests from all users.
+    For regular users: returns only their own warm intro requests.
     """
     user_id = UUID(str(current_user.id))
     
     try:
-        result = await warm_intro_requests_service.get_warm_intro_requests(
-            db=db,
-            user_id=user_id,
-            page=page,
-            limit=limit,
-            status_filter=status_filter
-        )
+        # For admin users, get all requests; for regular users, get only their own
+        if current_user.role == UserRole.admin:
+            result = await warm_intro_requests_service.get_all_warm_intro_requests(
+                db=db,
+                page=page,
+                limit=limit,
+                status_filter=status_filter
+            )
+        else:
+            result = await warm_intro_requests_service.get_warm_intro_requests(
+                db=db,
+                user_id=user_id,
+                page=page,
+                limit=limit,
+                status_filter=status_filter
+            )
         
         items = [
             WarmIntroRequestResponse(
@@ -227,42 +238,64 @@ async def update_warm_intro_request_status(
     """
     Update the status of a warm intro request.
     
-    Requires authentication. Only allows updating requests that belong to the current user.
+    For admin users: can update any warm intro request.
+    For regular users: can only update their own warm intro requests.
     """
     user_id = UUID(str(current_user.id))
     
     try:
-        # First, verify the request exists and belongs to the user
-        existing_request = await warm_intro_requests_service.get_warm_intro_request_by_id(
-            db=db,
-            request_id=request_id,
-            user_id=user_id
-        )
-        
-        if not existing_request:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Warm intro request not found"
+        # For admin users, allow updating any request
+        if current_user.role == UserRole.admin:
+            # Verify the request exists
+            existing_request = await db.warm_intro_requests.find_one({"id": str(request_id)})
+            if not existing_request:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Warm intro request not found"
+                )
+            
+            # Update the status using admin function
+            updated_request = await warm_intro_requests_service.update_warm_intro_request_status_admin(
+                db=db,
+                request_id=request_id,
+                status=request.status,
+                connected_date=request.connected_date,
+                declined_date=request.declined_date,
+                outcome=request.outcome,
+                outcome_date=request.outcome_date
             )
-        
-        # Additional security check: ensure the request belongs to the current user
-        if existing_request.user_id != user_id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Access denied: You can only update your own warm intro requests"
+        else:
+            # For regular users, verify the request exists and belongs to them
+            existing_request = await warm_intro_requests_service.get_warm_intro_request_by_id(
+                db=db,
+                request_id=request_id,
+                user_id=user_id
             )
-        
-        # Update the status
-        updated_request = await warm_intro_requests_service.update_warm_intro_request_status(
-            db=db,
-            request_id=request_id,
-            status=request.status,
-            user_id=user_id,
-            connected_date=request.connected_date,
-            declined_date=request.declined_date,
-            outcome=request.outcome,
-            outcome_date=request.outcome_date
-        )
+            
+            if not existing_request:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Warm intro request not found"
+                )
+            
+            # Additional security check: ensure the request belongs to the current user
+            if existing_request.user_id != user_id:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Access denied: You can only update your own warm intro requests"
+                )
+            
+            # Update the status using regular function
+            updated_request = await warm_intro_requests_service.update_warm_intro_request_status(
+                db=db,
+                request_id=request_id,
+                status=request.status,
+                user_id=user_id,
+                connected_date=request.connected_date,
+                declined_date=request.declined_date,
+                outcome=request.outcome,
+                outcome_date=request.outcome_date
+            )
         
         if not updated_request:
             raise HTTPException(

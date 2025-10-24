@@ -182,6 +182,121 @@ async def update_warm_intro_request_status(
     
     return None
 
+async def update_warm_intro_request_status_admin(
+    db,
+    request_id: UUID,
+    status: WarmIntroStatus,
+    connected_date: Optional[datetime] = None,
+    declined_date: Optional[datetime] = None,
+    outcome: Optional[str] = None,
+    outcome_date: Optional[datetime] = None
+) -> Optional[WarmIntroRequest]:
+    """
+    Update the status of a warm intro request (admin only - can update any request).
+    
+    Args:
+        db: Database connection
+        request_id: ID of the request
+        status: New status
+        connected_date: Date when connected (if status is connected)
+        declined_date: Date when declined (if status is declined)
+        outcome: Connection outcome (Connected, Not Connected, or None to clear)
+        outcome_date: Date when outcome was set
+    
+    Returns:
+        WarmIntroRequest or None: The updated request if successful
+    """
+    # Build update document
+    update_doc = {
+        "status": status.value,
+        "updated_at": datetime.utcnow()
+    }
+    
+    # Add outcome field if provided
+    if outcome is not None:
+        update_doc["outcome"] = outcome
+        
+    # Add outcome_date field if provided
+    if outcome_date is not None:
+        update_doc["outcome_date"] = outcome_date
+    
+    # Add date fields based on status
+    if status == WarmIntroStatus.connected and connected_date:
+        update_doc["connected_date"] = connected_date
+        update_doc["declined_date"] = None  # Clear declined date
+    elif status == WarmIntroStatus.declined and declined_date:
+        update_doc["declined_date"] = declined_date
+        update_doc["connected_date"] = None  # Clear connected date
+    elif status == WarmIntroStatus.pending:
+        # Clear both dates when resetting to pending
+        update_doc["connected_date"] = None
+        update_doc["declined_date"] = None
+    
+    # Update the request (admin can update any request)
+    result = await db.warm_intro_requests.update_one(
+        {"id": str(request_id)},
+        {"$set": update_doc}
+    )
+    
+    if result.modified_count > 0:
+        # Return the updated request
+        request = await db.warm_intro_requests.find_one({"id": str(request_id)})
+        if request:
+            return WarmIntroRequest(**request)
+    
+    return None
+
+async def get_all_warm_intro_requests(
+    db,
+    page: int = 1,
+    limit: int = 10,
+    status_filter: Optional[WarmIntroStatus] = None
+) -> Dict:
+    """
+    Get paginated warm intro requests from all users (admin only).
+    
+    Args:
+        db: Database connection
+        page: Page number (1-based)
+        limit: Number of items per page
+        status_filter: Optional status filter
+    
+    Returns:
+        Dict: Paginated results with items, total, page, limit, total_pages, and status_counts
+    """
+    # Build query
+    query = {}
+    if status_filter:
+        query["status"] = status_filter.value
+    
+    # Calculate skip
+    skip = (page - 1) * limit
+    
+    # Get total count
+    total = await db.warm_intro_requests.count_documents(query)
+    
+    # Get paginated results
+    cursor = db.warm_intro_requests.find(query).sort("created_at", -1).skip(skip).limit(limit)
+    requests = await cursor.to_list(length=limit)
+    
+    # Convert to WarmIntroRequest objects
+    warm_intro_requests = [WarmIntroRequest(**request) for request in requests]
+    
+    # Calculate total pages
+    total_pages = math.ceil(total / limit) if total > 0 else 1
+    
+    # Get status counts for all requests (not just filtered ones)
+    status_counts = await get_all_warm_intro_request_counts(db)
+    
+    return {
+        "items": warm_intro_requests,
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "total_pages": total_pages,
+        "status_counts": status_counts
+    }
+
 async def get_warm_intro_request_counts(
     db, 
     user_id: UUID
@@ -202,6 +317,35 @@ async def get_warm_intro_request_counts(
     # Get counts by status
     pipeline = [
         {"$match": {"user_id": str(user_id)}},
+        {"$group": {"_id": "$status", "count": {"$sum": 1}}}
+    ]
+    
+    status_counts = {}
+    async for result in db.warm_intro_requests.aggregate(pipeline):
+        status_counts[result["_id"]] = result["count"]
+    
+    return {
+        "total": total,
+        "pending": status_counts.get(WarmIntroStatus.pending.value, 0),
+        "connected": status_counts.get(WarmIntroStatus.connected.value, 0),
+        "declined": status_counts.get(WarmIntroStatus.declined.value, 0)
+    }
+
+async def get_all_warm_intro_request_counts(db) -> Dict[str, int]:
+    """
+    Get count statistics for all warm intro requests by status (admin only).
+    
+    Args:
+        db: Database connection
+    
+    Returns:
+        Dict: Counts by status and total
+    """
+    # Get total count
+    total = await db.warm_intro_requests.count_documents({})
+    
+    # Get counts by status
+    pipeline = [
         {"$group": {"_id": "$status", "count": {"$sum": 1}}}
     ]
     
