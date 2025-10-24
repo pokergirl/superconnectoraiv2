@@ -157,6 +157,21 @@ async def approve_access_request_and_create_user(db, request_id: str, admin_id: 
         temp_password=temp_password
     )
     
+    # Schedule follow-up email for 2 weeks from now
+    try:
+        from app.services.access_request_follow_up_service import schedule_access_request_follow_up_email
+        await schedule_access_request_follow_up_email(
+            db=db,
+            access_request_id=request_id,
+            user_email=request["email"],
+            user_name=request["full_name"],
+            follow_up_days=14
+        )
+        logger.info(f"Scheduled follow-up email for approved access request {request_id}")
+    except Exception as e:
+        logger.error(f"Failed to schedule follow-up email for access request {request_id}: {str(e)}")
+        # Don't fail the approval process if follow-up scheduling fails
+    
     if email_sent:
         logger.info(f"Approval email sent to {request['email']}")
     else:

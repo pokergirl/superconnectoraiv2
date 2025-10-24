@@ -3,6 +3,7 @@ import logging
 from datetime import datetime, timedelta
 from typing import Optional
 from app.services.follow_up_email_service import process_pending_follow_ups, process_manual_follow_ups
+from app.services.access_request_follow_up_service import process_pending_access_request_follow_ups
 from app.core.db import get_database
 import traceback
 
@@ -55,6 +56,9 @@ class SchedulerService:
                 # Process pending follow-up emails (legacy system)
                 await self._process_follow_up_emails()
                 
+                # Process pending access request follow-up emails
+                await self._process_access_request_follow_up_emails()
+                
                 # Manual follow-up emails are now handled via UI - no automated processing
                 logger.info("Manual follow-up email system active - no automated processing needed")
                 
@@ -105,6 +109,25 @@ class SchedulerService:
         except Exception as e:
             logger.error(f"Error processing follow-up emails: {str(e)}")
             logger.error(f"Follow-up email processing traceback: {traceback.format_exc()}")
+            # Don't re-raise - let the scheduler continue with other tasks
+    
+    async def _process_access_request_follow_up_emails(self):
+        """Process pending access request follow-up emails with enhanced error handling"""
+        try:
+            start_time = datetime.utcnow()
+            processed_count = await process_pending_access_request_follow_ups()
+            end_time = datetime.utcnow()
+            
+            duration = (end_time - start_time).total_seconds()
+            
+            if processed_count > 0:
+                logger.info(f"Processed {processed_count} access request follow-up emails in {duration:.2f} seconds")
+            else:
+                logger.debug(f"No pending access request follow-up emails to process (checked in {duration:.2f} seconds)")
+                
+        except Exception as e:
+            logger.error(f"Error processing access request follow-up emails: {str(e)}")
+            logger.error(f"Access request follow-up processing traceback: {traceback.format_exc()}")
             # Don't re-raise - let the scheduler continue with other tasks
     
     async def _process_automated_follow_ups(self):
@@ -160,18 +183,20 @@ async def trigger_manual_follow_up_processing():
     try:
         logger.info("Manual follow-up processing triggered")
         
-        # Process both types of follow-ups
+        # Process all types of follow-ups
         legacy_count = await process_pending_follow_ups()
-        automated_count = await process_automated_follow_ups()
+        automated_count = await process_manual_follow_ups()
+        access_request_count = await process_pending_access_request_follow_ups()
         
-        total_processed = legacy_count + automated_count
+        total_processed = legacy_count + automated_count + access_request_count
         
-        logger.info(f"Manual processing complete: {legacy_count} legacy + {automated_count} automated = {total_processed} total")
+        logger.info(f"Manual processing complete: {legacy_count} legacy + {automated_count} automated + {access_request_count} access request = {total_processed} total")
         
         return {
             "success": True,
             "legacy_processed": legacy_count,
             "automated_processed": automated_count,
+            "access_request_processed": access_request_count,
             "total_processed": total_processed,
             "timestamp": datetime.utcnow().isoformat()
         }
