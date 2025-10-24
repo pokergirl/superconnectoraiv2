@@ -11,7 +11,10 @@ async def create_warm_intro_request(
     connection_name: str, 
     status: WarmIntroStatus = WarmIntroStatus.pending,
     connection_linkedin_url: Optional[str] = None,
-    connection_email: Optional[str] = None
+    connection_email: Optional[str] = None,
+    reason: Optional[str] = None,
+    about: Optional[str] = None,
+    requester_linkedin_url: Optional[str] = None
 ) -> WarmIntroRequest:
     """
     Create a new warm intro request.
@@ -32,7 +35,10 @@ async def create_warm_intro_request(
         connection_name=connection_name,
         status=status,
         connection_linkedin_url=connection_linkedin_url,
-        connection_email=connection_email
+        connection_email=connection_email,
+        reason=reason,
+        about=about,
+        requester_linkedin_url=requester_linkedin_url
     )
     
     # Convert the model to dict for MongoDB insertion

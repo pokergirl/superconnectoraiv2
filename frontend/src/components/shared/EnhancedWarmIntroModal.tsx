@@ -288,7 +288,10 @@ const EnhancedWarmIntroModal: React.FC<EnhancedWarmIntroModalProps> = ({
         WarmIntroStatus.pending,
         token!,
         linkedinUrl,
-        undefined // connection email not available in this context
+        undefined, // connection email not available in this context
+        reason,
+        about,
+        requesterLinkedIn
       );
       
       telemetry.track('warm_intro_request_created', {

@@ -46,13 +46,49 @@ const handleApiError = (error: unknown, context: string): never => {
   throw new Error(`Unknown error in ${context}: ${String(error)}`);
 };
 
+export async function getPopulatedEmailTemplate(
+  warmIntroRequestId: string,
+  token: string
+): Promise<{ success: boolean; template: string; subject: string; message?: string }> {
+  try {
+    console.log('🚀 API: Calling populate-template endpoint for request ID:', warmIntroRequestId);
+    const response = await fetch(`${API_BASE_URL}/api/v1/populate-template`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        warm_intro_request_id: warmIntroRequestId
+      }),
+    });
+
+    console.log('📧 API: Response status:', response.status);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ API: Response error:', errorText);
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    console.log('✅ API: Response data:', result);
+    return result;
+  } catch (error) {
+    console.error('❌ API: Error in getPopulatedEmailTemplate:', error);
+    return handleApiError(error, "getPopulatedEmailTemplate");
+  }
+}
+
 export async function createWarmIntroRequest(
   requesterName: string,
   connectionName: string,
   status: WarmIntroStatus = WarmIntroStatus.pending,
   token: string,
   connectionLinkedinUrl?: string,
-  connectionEmail?: string
+  connectionEmail?: string,
+  reason?: string,
+  about?: string,
+  requesterLinkedinUrl?: string
 ): Promise<WarmIntroRequest> {
   try {
     const response = await fetch(`${API_BASE_URL}/api/v1/warm-intro-requests/`, {
@@ -66,7 +102,10 @@ export async function createWarmIntroRequest(
         connection_name: connectionName,
         status: status,
         connection_linkedin_url: connectionLinkedinUrl,
-        connection_email: connectionEmail
+        connection_email: connectionEmail,
+        reason: reason,
+        about: about,
+        requester_linkedin_url: requesterLinkedinUrl
       }),
     });
 

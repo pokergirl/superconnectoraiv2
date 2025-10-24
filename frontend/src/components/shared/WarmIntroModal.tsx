@@ -333,7 +333,12 @@ const WarmIntroModal: React.FC<WarmIntroModalProps> = ({
             requesterName,
             `${targetFirstName} ${targetLastName}`,
             WarmIntroStatus.pending,
-            token!
+            token!,
+            undefined, // connectionLinkedinUrl
+            undefined, // connectionEmail
+            reason,
+            about,
+            requesterLinkedIn
           );
           telemetry.track('warm_intro_request_created', {
             requester_name: requesterName,

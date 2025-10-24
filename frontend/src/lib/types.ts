@@ -146,6 +146,9 @@ export interface WarmIntroRequest {
   connection_last_name?: string | null;
   connection_linkedin_url?: string | null;
   connection_email?: string | null;
+  reason?: string | null;
+  about?: string | null;
+  requester_linkedin_url?: string | null;
   status: WarmIntroStatus;
   outcome?: string | null;
   outcome_date?: string | null;

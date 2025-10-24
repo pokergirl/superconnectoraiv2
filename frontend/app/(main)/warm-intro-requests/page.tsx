@@ -810,6 +810,7 @@ export default function WarmIntroRequestsPage() {
         connectionName={emailModal.connectionName}
         connectionLinkedinUrl={emailModal.connectionLinkedinUrl}
         connectionEmail={emailModal.connectionEmail}
+        warmIntroRequestId={emailModal.requestId}
       />
     </div>
   );

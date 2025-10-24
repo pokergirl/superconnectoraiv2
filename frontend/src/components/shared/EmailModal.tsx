@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Mail, Send, X } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { getPopulatedEmailTemplate } from '@/lib/api';
 
 // Get API base URL
 const getApiBaseUrl = () => {
@@ -36,6 +37,7 @@ interface EmailModalProps {
   connectionName: string;
   connectionLinkedinUrl?: string;
   connectionEmail?: string;
+  warmIntroRequestId?: string;
 }
 
 const EMAIL_TEMPLATE = `Hi {connectionName},
@@ -47,7 +49,7 @@ I hope this email finds you well. I wanted to reach out regarding a warm introdu
 {reason}
 
 Here's a bit about {requesterName}:
-{about}
+{about}{requesterLinkedIn}
 
 Would you be open to a brief conversation or connection? I'd be happy to facilitate an introduction if you're interested.
 
@@ -61,6 +63,7 @@ const EmailModal: React.FC<EmailModalProps> = ({
   connectionName,
   connectionLinkedinUrl,
   connectionEmail,
+  warmIntroRequestId,
 }) => {
   const { toast } = useToast();
   const { token } = useAuth();
@@ -68,6 +71,44 @@ const EmailModal: React.FC<EmailModalProps> = ({
   const [subject, setSubject] = useState(`Warm Introduction Request - ${connectionName}`);
   const [emailBody, setEmailBody] = useState(EMAIL_TEMPLATE.replace('{connectionName}', connectionName));
   const [isSending, setIsSending] = useState(false);
+  const [isLoadingTemplate, setIsLoadingTemplate] = useState(false);
+
+  // Load populated template when modal opens and warmIntroRequestId is provided
+  useEffect(() => {
+    const loadPopulatedTemplate = async () => {
+      if (!warmIntroRequestId || !token || !isOpen) return;
+      
+      console.log('🚀 EmailModal: Loading populated template for request ID:', warmIntroRequestId);
+      setIsLoadingTemplate(true);
+      try {
+        const result = await getPopulatedEmailTemplate(warmIntroRequestId, token);
+        console.log('📧 EmailModal: API response:', result);
+        if (result.success) {
+          console.log('✅ EmailModal: Setting populated template:', result.template);
+          setEmailBody(result.template);
+          setSubject(result.subject);
+        } else {
+          console.log('❌ EmailModal: API returned success=false:', result);
+          toast({
+            title: "Warning",
+            description: "Could not load populated template. Using default template.",
+            variant: "destructive",
+          });
+        }
+      } catch (error) {
+        console.error('❌ EmailModal: Error loading populated template:', error);
+        toast({
+          title: "Warning",
+          description: "Could not load populated template. Using default template.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoadingTemplate(false);
+      }
+    };
+
+    loadPopulatedTemplate();
+  }, [warmIntroRequestId, token, isOpen, toast]);
 
   const handleSendEmail = async () => {
     if (!recipientEmail.trim()) {

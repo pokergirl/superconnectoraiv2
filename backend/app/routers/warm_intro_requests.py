@@ -24,6 +24,9 @@ class WarmIntroRequestCreate(BaseModel):
     outcome: Optional[str] = None
     connection_linkedin_url: Optional[str] = None
     connection_email: Optional[str] = None
+    reason: Optional[str] = None  # Why the requester wants to connect
+    about: Optional[str] = None   # About the requester
+    requester_linkedin_url: Optional[str] = None  # Requester's LinkedIn profile
 
 class WarmIntroRequestUpdate(BaseModel):
     status: WarmIntroStatus
@@ -81,7 +84,10 @@ async def create_warm_intro_request(
             connection_name=request.connection_name,
             status=request.status,
             connection_linkedin_url=request.connection_linkedin_url,
-            connection_email=request.connection_email
+            connection_email=request.connection_email,
+            reason=request.reason,
+            about=request.about,
+            requester_linkedin_url=request.requester_linkedin_url
         )
         
         return WarmIntroRequestResponse(
