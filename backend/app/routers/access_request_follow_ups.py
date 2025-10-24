@@ -41,7 +41,7 @@ async def schedule_follow_up(
             scheduled_date=follow_up_data.scheduled_date
         )
         
-        logger.info(f"Admin {current_user['email']} scheduled follow-up email for access request {follow_up_data.access_request_id}")
+        logger.info(f"Admin {current_user.email} scheduled follow-up email for access request {follow_up_data.access_request_id}")
         
         return AccessRequestFollowUpPublic(**follow_up_dict)
         
@@ -81,7 +81,7 @@ async def send_follow_up_email(
         success = await send_access_request_follow_up_email(db, follow_up_id)
         
         if success:
-            logger.info(f"Admin {current_user['email']} manually sent follow-up email {follow_up_id}")
+            logger.info(f"Admin {current_user.email} manually sent follow-up email {follow_up_id}")
             return {"success": True, "message": "Follow-up email sent successfully"}
         else:
             raise HTTPException(
@@ -109,7 +109,7 @@ async def cancel_follow_up_email(
         success = await cancel_access_request_follow_up_email(db, follow_up_id)
         
         if success:
-            logger.info(f"Admin {current_user['email']} cancelled follow-up email {follow_up_id}")
+            logger.info(f"Admin {current_user.email} cancelled follow-up email {follow_up_id}")
             return {"success": True, "message": "Follow-up email cancelled successfully"}
         else:
             raise HTTPException(
@@ -174,7 +174,7 @@ async def process_pending_follow_up_emails(
 ):
     """Manually trigger processing of pending access request follow-up emails (admin only)"""
     try:
-        logger.info(f"Admin {current_user['email']} triggered manual processing of pending access request follow-up emails")
+        logger.info(f"Admin {current_user.email} triggered manual processing of pending access request follow-up emails")
         
         # Process in background
         background_tasks.add_task(process_pending_access_request_follow_ups)
