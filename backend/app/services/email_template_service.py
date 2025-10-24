@@ -183,21 +183,21 @@ class EmailTemplateService:
         Get the default email template for warm introductions
         
         Returns:
-            str: Default email template
+            str: Default email template with proper HTML formatting
         """
-        return """Hi {connectionName},
+        return """Hi {connectionName},<br><br>
 
-I hope this email finds you well. I wanted to reach out regarding a warm introduction request that was made through SuperConnect AI.
+I hope this email finds you well. I wanted to reach out regarding a warm introduction request that was made through SuperConnect AI.<br><br>
 
-{requesterName} has requested an introduction to you, and I wanted to facilitate this connection. They mentioned they're interested in connecting because:
+{requesterName} has requested an introduction to you, and I wanted to facilitate this connection. They mentioned they're interested in connecting because:<br><br>
 
-{reason}
+{reason}<br><br>
 
-Here's a bit about {requesterName}:
-{about}{requesterLinkedIn}
+Here's a bit about {requesterName}:<br>
+{about}{requesterLinkedIn}<br><br>
 
-Would you be open to a brief conversation or connection? I'd be happy to facilitate an introduction if you're interested.
+Would you be open to a brief conversation or connection? I'd be happy to facilitate an introduction if you're interested.<br><br>
 
-Best regards,
-Ha
+Best regards,<br>
+Ha<br>
 SuperConnect AI"""

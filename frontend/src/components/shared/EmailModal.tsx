@@ -40,21 +40,21 @@ interface EmailModalProps {
   warmIntroRequestId?: string;
 }
 
-const EMAIL_TEMPLATE = `Hi {connectionName},
+const EMAIL_TEMPLATE = `Hi {connectionName},<br><br>
 
-I hope this email finds you well. I wanted to reach out regarding a warm introduction request that was made through SuperConnect AI.
+I hope this email finds you well. I wanted to reach out regarding a warm introduction request that was made through SuperConnect AI.<br><br>
 
-{requesterName} has requested an introduction to you, and I wanted to facilitate this connection. They mentioned they're interested in connecting because:
+{requesterName} has requested an introduction to you, and I wanted to facilitate this connection. They mentioned they're interested in connecting because:<br><br>
 
-{reason}
+{reason}<br><br>
 
-Here's a bit about {requesterName}:
-{about}{requesterLinkedIn}
+Here's a bit about {requesterName}:<br>
+{about}{requesterLinkedIn}<br><br>
 
-Would you be open to a brief conversation or connection? I'd be happy to facilitate an introduction if you're interested.
+Would you be open to a brief conversation or connection? I'd be happy to facilitate an introduction if you're interested.<br><br>
 
-Best regards,
-Ha
+Best regards,<br>
+Ha<br>
 SuperConnect AI`;
 
 const EmailModal: React.FC<EmailModalProps> = ({
@@ -273,12 +273,12 @@ const EmailModal: React.FC<EmailModalProps> = ({
           </div>
 
           {/* Template Info */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          {/* <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <h4 className="font-medium text-blue-900 mb-2">Template Variables</h4>
             <p className="text-sm text-blue-800">
               You can use these variables in your email: <code>{'{connectionName}'}</code>, <code>{'{requesterName}'}</code>, <code>{'{reason}'}</code>, <code>{'{about}'}</code>
             </p>
-          </div>
+          </div> */}
         </div>
 
         {/* Footer */}
