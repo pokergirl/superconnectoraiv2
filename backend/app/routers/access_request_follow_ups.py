@@ -19,6 +19,7 @@ from app.services.access_request_follow_up_service import (
 )
 from app.core.db import get_database
 from app.services.auth_service import get_current_admin_user
+from app.models.user import UserPublic
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +28,7 @@ router = APIRouter(prefix="/api/v1/admin/access-request-follow-ups", tags=["admi
 @router.post("/schedule", response_model=AccessRequestFollowUpPublic)
 async def schedule_follow_up(
     follow_up_data: AccessRequestFollowUpCreate,
-    current_user: dict = Depends(get_current_admin_user),
+    current_user: UserPublic = Depends(get_current_admin_user),
     db = Depends(get_database)
 ):
     """Schedule a follow-up email for an access request (admin only)"""
@@ -54,7 +55,7 @@ async def schedule_follow_up(
 
 @router.get("/pending", response_model=List[AccessRequestFollowUpPublic])
 async def get_pending_follow_ups(
-    current_user: dict = Depends(get_current_admin_user),
+    current_user: UserPublic = Depends(get_current_admin_user),
     db = Depends(get_database)
 ):
     """Get all pending access request follow-up emails (admin only)"""
@@ -73,7 +74,7 @@ async def get_pending_follow_ups(
 @router.post("/{follow_up_id}/send")
 async def send_follow_up_email(
     follow_up_id: str,
-    current_user: dict = Depends(get_current_admin_user),
+    current_user: UserPublic = Depends(get_current_admin_user),
     db = Depends(get_database)
 ):
     """Manually send a follow-up email (admin only)"""
@@ -101,7 +102,7 @@ async def send_follow_up_email(
 @router.post("/{follow_up_id}/cancel")
 async def cancel_follow_up_email(
     follow_up_id: str,
-    current_user: dict = Depends(get_current_admin_user),
+    current_user: UserPublic = Depends(get_current_admin_user),
     db = Depends(get_database)
 ):
     """Cancel a scheduled follow-up email (admin only)"""
@@ -129,7 +130,7 @@ async def cancel_follow_up_email(
 @router.get("/access-request/{access_request_id}", response_model=List[AccessRequestFollowUpPublic])
 async def get_follow_ups_by_access_request(
     access_request_id: str,
-    current_user: dict = Depends(get_current_admin_user),
+    current_user: UserPublic = Depends(get_current_admin_user),
     db = Depends(get_database)
 ):
     """Get all follow-up emails for a specific access request (admin only)"""
@@ -147,7 +148,7 @@ async def get_follow_ups_by_access_request(
 
 @router.get("/stats")
 async def get_follow_up_stats(
-    current_user: dict = Depends(get_current_admin_user),
+    current_user: UserPublic = Depends(get_current_admin_user),
     db = Depends(get_database)
 ):
     """Get statistics about access request follow-up emails (admin only)"""
