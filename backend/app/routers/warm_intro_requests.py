@@ -22,6 +22,8 @@ class WarmIntroRequestCreate(BaseModel):
     connection_name: str
     status: WarmIntroStatus = WarmIntroStatus.pending
     outcome: Optional[str] = None
+    connection_linkedin_url: Optional[str] = None
+    connection_email: Optional[str] = None
 
 class WarmIntroRequestUpdate(BaseModel):
     status: WarmIntroStatus
@@ -39,6 +41,8 @@ class WarmIntroRequestResponse(BaseModel):
     requester_last_name: Optional[str] = None
     connection_first_name: Optional[str] = None
     connection_last_name: Optional[str] = None
+    connection_linkedin_url: Optional[str] = None
+    connection_email: Optional[str] = None
     status: WarmIntroStatus
     created_at: str
     updated_at: str
@@ -75,7 +79,9 @@ async def create_warm_intro_request(
             user_id=user_id,
             requester_name=request.requester_name,
             connection_name=request.connection_name,
-            status=request.status
+            status=request.status,
+            connection_linkedin_url=request.connection_linkedin_url,
+            connection_email=request.connection_email
         )
         
         return WarmIntroRequestResponse(
@@ -86,6 +92,8 @@ async def create_warm_intro_request(
             requester_last_name=warm_intro_request.requester_last_name,
             connection_first_name=warm_intro_request.connection_first_name,
             connection_last_name=warm_intro_request.connection_last_name,
+            connection_linkedin_url=warm_intro_request.connection_linkedin_url,
+            connection_email=warm_intro_request.connection_email,
             status=warm_intro_request.status,
             created_at=warm_intro_request.created_at.isoformat(),
             updated_at=warm_intro_request.updated_at.isoformat(),
@@ -144,6 +152,8 @@ async def get_warm_intro_requests(
                 requester_last_name=req.requester_last_name,
                 connection_first_name=req.connection_first_name,
                 connection_last_name=req.connection_last_name,
+                connection_linkedin_url=req.connection_linkedin_url,
+                connection_email=req.connection_email,
                 status=req.status,
                 created_at=req.created_at.isoformat(),
                 updated_at=req.updated_at.isoformat(),
@@ -211,6 +221,8 @@ async def get_warm_intro_request_by_id(
             requester_last_name=warm_intro_request.requester_last_name,
             connection_first_name=warm_intro_request.connection_first_name,
             connection_last_name=warm_intro_request.connection_last_name,
+            connection_linkedin_url=warm_intro_request.connection_linkedin_url,
+            connection_email=warm_intro_request.connection_email,
             status=warm_intro_request.status,
             created_at=warm_intro_request.created_at.isoformat(),
             updated_at=warm_intro_request.updated_at.isoformat(),
@@ -327,6 +339,8 @@ async def update_warm_intro_request_status(
             requester_last_name=updated_request.requester_last_name,
             connection_first_name=updated_request.connection_first_name,
             connection_last_name=updated_request.connection_last_name,
+            connection_linkedin_url=updated_request.connection_linkedin_url,
+            connection_email=updated_request.connection_email,
             status=updated_request.status,
             created_at=updated_request.created_at.isoformat(),
             updated_at=updated_request.updated_at.isoformat(),

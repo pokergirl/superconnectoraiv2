@@ -7,6 +7,9 @@ export interface User {
   created_at: string;
   last_login?: string | null;
   persist_search_results: boolean;
+  first_name?: string;
+  last_name?: string;
+  linkedin_url?: string;
 }
 
 export interface Connection {
@@ -141,6 +144,8 @@ export interface WarmIntroRequest {
   requester_last_name?: string | null;
   connection_first_name?: string | null;
   connection_last_name?: string | null;
+  connection_linkedin_url?: string | null;
+  connection_email?: string | null;
   status: WarmIntroStatus;
   outcome?: string | null;
   outcome_date?: string | null;

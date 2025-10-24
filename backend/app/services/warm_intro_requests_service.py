@@ -9,7 +9,9 @@ async def create_warm_intro_request(
     user_id: UUID, 
     requester_name: str, 
     connection_name: str, 
-    status: WarmIntroStatus = WarmIntroStatus.pending
+    status: WarmIntroStatus = WarmIntroStatus.pending,
+    connection_linkedin_url: Optional[str] = None,
+    connection_email: Optional[str] = None
 ) -> WarmIntroRequest:
     """
     Create a new warm intro request.
@@ -28,7 +30,9 @@ async def create_warm_intro_request(
         user_id=user_id,
         requester_name=requester_name,
         connection_name=connection_name,
-        status=status
+        status=status,
+        connection_linkedin_url=connection_linkedin_url,
+        connection_email=connection_email
     )
     
     # Convert the model to dict for MongoDB insertion

@@ -6,7 +6,7 @@ from app.core.db import connect_to_mongo, close_mongo_connection
 from app.core.config import settings
 from app.services.threading_service import threading_service
 from app.services.scheduler_service import start_scheduler, stop_scheduler
-from app.routers import auth, connections, search, saved_searches, search_history, favorites, embeddings, pinecone_index, retrieval, generated_emails, tips, warm_intro_requests, health, invitations, follow_up_emails, filter_options, public, access_requests, dashboard_stats, last_search_results, user_preferences
+from app.routers import auth, connections, search, saved_searches, search_history, favorites, embeddings, pinecone_index, retrieval, generated_emails, tips, warm_intro_requests, health, invitations, follow_up_emails, filter_options, public, access_requests, dashboard_stats, last_search_results, user_preferences, email
 
 # Get the logger used by Uvicorn
 uvicorn_error_logger = logging.getLogger("uvicorn.error")
@@ -62,4 +62,5 @@ app.include_router(access_requests.router, prefix="/api/v1", tags=["Access Reque
 app.include_router(dashboard_stats.router, prefix="/api/v1", tags=["Dashboard Stats"])
 app.include_router(last_search_results.router, prefix="/api/v1", tags=["Last Search Results"])
 app.include_router(user_preferences.router, prefix="/api/v1", tags=["User Preferences"])
+app.include_router(email.router, prefix="/api/v1", tags=["Email"])
 app.include_router(access_requests.public_router, prefix="/api/v1", tags=["Access Requests"])

@@ -16,6 +16,8 @@ class WarmIntroRequestBase(BaseModel):
     requester_last_name: Optional[str] = None
     connection_first_name: Optional[str] = None
     connection_last_name: Optional[str] = None
+    connection_linkedin_url: Optional[str] = None
+    connection_email: Optional[str] = None
     status: WarmIntroStatus = WarmIntroStatus.pending
     outcome: Optional[str] = None
     outcome_date: Optional[datetime] = None
@@ -53,6 +55,8 @@ class WarmIntroRequestCreate(BaseModel):
     requester_last_name: Optional[str] = None
     connection_first_name: Optional[str] = None
     connection_last_name: Optional[str] = None
+    connection_linkedin_url: Optional[str] = None
+    connection_email: Optional[str] = None
     status: WarmIntroStatus = WarmIntroStatus.pending
     outcome: Optional[str] = None
     outcome_date: Optional[datetime] = None

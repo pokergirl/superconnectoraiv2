@@ -16,12 +16,12 @@ import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { createWarmIntroRequest } from '@/lib/api';
-import { WarmIntroStatus } from '@/lib/types';
+import { WarmIntroStatus, User } from '@/lib/types';
 import { useAuth } from '@/context/AuthContext';
 import {
   X,
   Info,
-  User,
+  User as UserIcon,
   Linkedin,
   ChevronDown,
   ChevronUp,
@@ -286,7 +286,9 @@ const EnhancedWarmIntroModal: React.FC<EnhancedWarmIntroModalProps> = ({
         requesterName,
         `${targetFirstName} ${targetLastName}`,
         WarmIntroStatus.pending,
-        token!
+        token!,
+        linkedinUrl,
+        undefined // connection email not available in this context
       );
       
       telemetry.track('warm_intro_request_created', {
@@ -364,7 +366,7 @@ const EnhancedWarmIntroModal: React.FC<EnhancedWarmIntroModalProps> = ({
                 height={32}
               />
             ) : (
-              <User className="w-4 h-4 text-gray-500" />
+              <UserIcon className="w-4 h-4 text-gray-500" />
             )}
           </div> */}
           <p className="text-sm text-gray-600">

@@ -48,7 +48,9 @@ export async function createWarmIntroRequest(
   requesterName: string,
   connectionName: string,
   status: WarmIntroStatus = WarmIntroStatus.pending,
-  token: string
+  token: string,
+  connectionLinkedinUrl?: string,
+  connectionEmail?: string
 ): Promise<WarmIntroRequest> {
   try {
     const response = await fetch(`${API_BASE_URL}/warm-intro-requests/`, {
@@ -61,6 +63,8 @@ export async function createWarmIntroRequest(
         requester_name: requesterName,
         connection_name: connectionName,
         status: status,
+        connection_linkedin_url: connectionLinkedinUrl,
+        connection_email: connectionEmail
       }),
     });
 

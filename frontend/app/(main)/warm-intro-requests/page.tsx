@@ -10,10 +10,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { ChevronLeft, ChevronRight, Filter, RefreshCw, Download } from "lucide-react";
+import { ChevronLeft, ChevronRight, Filter, RefreshCw, Download, Linkedin, Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { telemetry } from '@/lib/telemetry';
 import DatePickerModal from '@/components/shared/DatePickerModal';
+import EmailModal from '@/components/shared/EmailModal';
 
 export default function WarmIntroRequestsPage() {
   const router = useRouter();
@@ -45,6 +46,19 @@ export default function WarmIntroRequestsPage() {
     status: WarmIntroStatus.pending,
     title: '',
     description: ''
+  });
+  const [emailModal, setEmailModal] = useState<{
+    isOpen: boolean;
+    requestId: string;
+    connectionName: string;
+    connectionLinkedinUrl?: string;
+    connectionEmail?: string;
+  }>({
+    isOpen: false,
+    requestId: '',
+    connectionName: '',
+    connectionLinkedinUrl: undefined,
+    connectionEmail: undefined
   });
   const { token } = useAuth();
   const { toast } = useToast();
@@ -288,6 +302,20 @@ export default function WarmIntroRequestsPage() {
 
   const handleDateCancel = () => {
     setDatePickerModal(prev => ({ ...prev, isOpen: false }));
+  };
+
+  const handleEmailClick = (request: WarmIntroRequest) => {
+    setEmailModal({
+      isOpen: true,
+      requestId: request.id,
+      connectionName: request.connection_name,
+      connectionLinkedinUrl: request.connection_linkedin_url || undefined,
+      connectionEmail: request.connection_email || undefined
+    });
+  };
+
+  const handleEmailModalClose = () => {
+    setEmailModal(prev => ({ ...prev, isOpen: false }));
   };
 
   const handlePageChange = (newPage: number) => {
@@ -561,17 +589,19 @@ export default function WarmIntroRequestsPage() {
                 <TableRow>
                   <TableHead>Requester</TableHead>
                   <TableHead>Connection</TableHead>
+                  <TableHead>LinkedIn Profile</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Created</TableHead>
                   <TableHead>Updated</TableHead>
                   <TableHead>Request approved?</TableHead>
                   <TableHead>14 Day Outcome</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {requests.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                    <TableCell colSpan={9} className="text-center py-8 text-gray-500">
                       No warm intro requests found
                     </TableCell>
                   </TableRow>
@@ -582,6 +612,21 @@ export default function WarmIntroRequestsPage() {
                         {request.requester_name}
                       </TableCell>
                       <TableCell>{request.connection_name}</TableCell>
+                      <TableCell>
+                        {request.connection_linkedin_url ? (
+                          <a
+                            href={request.connection_linkedin_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800"
+                          >
+                            <Linkedin className="w-4 h-4" />
+                            View Profile
+                          </a>
+                        ) : (
+                          <span className="text-gray-400">No LinkedIn URL</span>
+                        )}
+                      </TableCell>
                       <TableCell>
                         <Badge
                           variant={getStatusBadgeVariant(request.status)}
@@ -692,6 +737,17 @@ export default function WarmIntroRequestsPage() {
                           )}
                         </div>
                       </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEmailClick(request)}
+                          className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                        >
+                          <Mail className="w-4 h-4 mr-1" />
+                          Send Email
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))
                 )}
@@ -745,6 +801,15 @@ export default function WarmIntroRequestsPage() {
         title={datePickerModal.title}
         description={datePickerModal.description}
         defaultDate={new Date().toISOString().split('T')[0]}
+      />
+
+      {/* Email Modal */}
+      <EmailModal
+        isOpen={emailModal.isOpen}
+        onClose={handleEmailModalClose}
+        connectionName={emailModal.connectionName}
+        connectionLinkedinUrl={emailModal.connectionLinkedinUrl}
+        connectionEmail={emailModal.connectionEmail}
       />
     </div>
   );
