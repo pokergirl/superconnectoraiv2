@@ -19,12 +19,14 @@ async def schedule_access_request_follow_up_email(
     access_request_id: str,
     user_email: str,
     user_name: str,
-    follow_up_days: int = 14
+    follow_up_days: int = 14,
+    scheduled_date: Optional[datetime] = None
 ) -> dict:
     """Schedule a follow-up email for an approved access request"""
     
-    # Calculate scheduled date
-    scheduled_date = datetime.utcnow() + timedelta(days=follow_up_days)
+    # Calculate scheduled date if not provided
+    if scheduled_date is None:
+        scheduled_date = datetime.utcnow() + timedelta(days=follow_up_days)
     
     # Create follow-up email record
     follow_up_email = AccessRequestFollowUpInDB(

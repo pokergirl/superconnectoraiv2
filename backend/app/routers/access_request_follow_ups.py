@@ -37,7 +37,8 @@ async def schedule_follow_up(
             access_request_id=str(follow_up_data.access_request_id),
             user_email=follow_up_data.user_email,
             user_name=follow_up_data.user_name,
-            follow_up_days=follow_up_data.follow_up_days
+            follow_up_days=follow_up_data.follow_up_days,
+            scheduled_date=follow_up_data.scheduled_date
         )
         
         logger.info(f"Admin {current_user['email']} scheduled follow-up email for access request {follow_up_data.access_request_id}")

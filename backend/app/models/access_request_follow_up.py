@@ -17,8 +17,12 @@ class AccessRequestFollowUpBase(BaseModel):
     scheduled_date: datetime
     follow_up_days: int = 14  # Default to 2 weeks
 
-class AccessRequestFollowUpCreate(AccessRequestFollowUpBase):
-    pass
+class AccessRequestFollowUpCreate(BaseModel):
+    access_request_id: UUID
+    user_email: EmailStr
+    user_name: str
+    follow_up_days: int = 14  # Default to 2 weeks
+    scheduled_date: Optional[datetime] = None  # Will be calculated by service
 
 class AccessRequestFollowUpInDB(AccessRequestFollowUpBase):
     id: UUID = Field(default_factory=uuid4)
