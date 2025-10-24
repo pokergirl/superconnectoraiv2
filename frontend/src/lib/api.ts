@@ -14,16 +14,18 @@ import {
 const getApiBaseUrl = (): string => {
   // Always prefer explicit environment variable
   if (process.env.NEXT_PUBLIC_API_BASE_URL) {
-    return process.env.NEXT_PUBLIC_API_BASE_URL;
+    // Remove /api/v1 suffix if it exists to avoid duplication
+    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+    return baseUrl.replace(/\/api\/v1$/, '');
   }
   
   // Simple production check
   if (typeof window !== 'undefined' && window.location.hostname.includes('superconnectai.com')) {
-    return 'https://api.superconnectai.com/api/v1';
+    return 'https://api.superconnectai.com';
   }
   
   // Default to localhost for development
-  return 'http://localhost:8000/api/v1';
+  return 'http://localhost:8000';
 };
 
 const API_BASE_URL = getApiBaseUrl();
@@ -53,7 +55,7 @@ export async function createWarmIntroRequest(
   connectionEmail?: string
 ): Promise<WarmIntroRequest> {
   try {
-    const response = await fetch(`${API_BASE_URL}/warm-intro-requests/`, {
+    const response = await fetch(`${API_BASE_URL}/api/v1/warm-intro-requests/`, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${token}`,
@@ -106,7 +108,7 @@ export async function updateWarmIntroRequestStatus(
             body.outcome_date = outcomeDate;
         }
 
-        const response = await fetch(`${API_BASE_URL}/warm-intro-requests/${requestId}/status`, {
+        const response = await fetch(`${API_BASE_URL}/api/v1/warm-intro-requests/${requestId}/status`, {
             method: "PATCH",
             headers: {
                 "Authorization": `Bearer ${token}`,
@@ -141,7 +143,7 @@ export async function getWarmIntroRequests(
       params.append('status', status);
     }
 
-    const response = await fetch(`${API_BASE_URL}/warm-intro-requests/?${params}`, {
+    const response = await fetch(`${API_BASE_URL}/api/v1/warm-intro-requests/?${params}`, {
       method: "GET",
       headers: {
         "Authorization": `Bearer ${token}`,
@@ -164,7 +166,7 @@ export async function getWarmIntroRequestById(
   token: string
 ): Promise<WarmIntroRequest> {
   try {
-    const response = await fetch(`${API_BASE_URL}/warm-intro-requests/${requestId}`, {
+    const response = await fetch(`${API_BASE_URL}/api/v1/warm-intro-requests/${requestId}`, {
       method: "GET",
       headers: {
         "Authorization": `Bearer ${token}`,
@@ -188,7 +190,7 @@ async function uploadConnectionsCSV(file: File, token: string): Promise<{ messag
     const formData = new FormData();
     formData.append("file", file);
 
-    const response = await fetch(`${API_BASE_URL}/connections/upload`, {
+    const response = await fetch(`${API_BASE_URL}/api/v1/connections/upload`, {
       method: "POST",
       body: formData,
       headers: {
@@ -257,7 +259,7 @@ export async function loginUser(email: string, password: string): Promise<{ acce
     formData.append('username', email);
     formData.append('password', password);
 
-    const response = await fetch(`${API_BASE_URL}/auth/login`, {
+    const response = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
       method: "POST",
       body: formData,
     });
@@ -290,7 +292,7 @@ export async function registerUser(
   name: string
 ): Promise<{ id: string; email: string; name: string; created_at: string }> {
   try {
-    const response = await fetch(`${API_BASE_URL}/auth/register`, {
+    const response = await fetch(`${API_BASE_URL}/api/v1/auth/register`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -323,7 +325,7 @@ export async function getGeneratedEmails(
 
 export async function getUserProfile(token: string): Promise<{ id: string; email: string; role: string; status: string; is_premium: boolean; created_at: string; last_login?: string }> {
   try {
-    const response = await fetch(`${API_BASE_URL}/users/me`, {
+    const response = await fetch(`${API_BASE_URL}/api/v1/users/me`, {
       method: "GET",
       headers: {
         "Authorization": `Bearer ${token}`,
@@ -356,7 +358,7 @@ export async function searchConnectionsWithProgress(
     let response: Response;
 
     if (useSSE) {
-      response = await fetch(`${API_BASE_URL}/search/progress`, {
+      response = await fetch(`${API_BASE_URL}/api/v1/search/progress`, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${token}`,
@@ -367,7 +369,7 @@ export async function searchConnectionsWithProgress(
         body: JSON.stringify(searchRequest),
       });
     } else {
-      response = await fetch(`${API_BASE_URL}/search`, {
+      response = await fetch(`${API_BASE_URL}/api/v1/search`, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${token}`,
@@ -465,7 +467,7 @@ export async function searchConnectionsWithProgress(
         console.warn('SSE timeout, falling back to regular search');
         // Fallback to regular search endpoint
         try {
-          const fallbackResponse = await fetch(`${API_BASE_URL}/search`, {
+          const fallbackResponse = await fetch(`${API_BASE_URL}/api/v1/search`, {
             method: "POST",
             headers: {
               "Authorization": `Bearer ${token}`,
@@ -496,7 +498,7 @@ export async function searchConnectionsWithProgress(
 
 export async function getConnectionsCount(token: string): Promise<{ count: number }> {
   try {
-    const response = await fetch(`${API_BASE_URL}/connections/count`, {
+    const response = await fetch(`${API_BASE_URL}/api/v1/connections/count`, {
       method: "GET",
       headers: {
         "Authorization": `Bearer ${token}`,
@@ -521,7 +523,7 @@ export async function getPineconeVectorCount(token: string): Promise<{
   source: string; 
 }> {
   try {
-    const response = await fetch(`${API_BASE_URL}/connections/pinecone-count`, {
+    const response = await fetch(`${API_BASE_URL}/api/v1/connections/pinecone-count`, {
       method: "GET",
       headers: {
         "Authorization": `Bearer ${token}`,
@@ -547,7 +549,7 @@ export async function createSavedSearch(
   token: string
 ): Promise<SavedSearch> {
   try {
-    const response = await fetch(`${API_BASE_URL}/saved-searches/`, {
+    const response = await fetch(`${API_BASE_URL}/api/v1/saved-searches/`, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${token}`,
@@ -576,7 +578,7 @@ export async function addFavoriteConnection(
   token: string
 ): Promise<FavoriteConnection> {
   try {
-    const response = await fetch(`${API_BASE_URL}/favorites/`, {
+    const response = await fetch(`${API_BASE_URL}/api/v1/favorites/`, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${token}`,
@@ -632,7 +634,7 @@ export async function getSavedSearches(
   token: string
 ): Promise<SavedSearch[]> {
   try {
-    const response = await fetch(`${API_BASE_URL}/saved-searches`, {
+    const response = await fetch(`${API_BASE_URL}/api/v1/saved-searches`, {
       method: "GET",
       headers: {
         "Authorization": `Bearer ${token}`,
@@ -655,7 +657,7 @@ export async function deleteSavedSearch(
   token: string
 ): Promise<{ success: boolean }> {
   try {
-    const response = await fetch(`${API_BASE_URL}/saved-searches/${searchId}`, {
+    const response = await fetch(`${API_BASE_URL}/api/v1/saved-searches/${searchId}`, {
       method: "DELETE",
       headers: {
         "Authorization": `Bearer ${token}`,
@@ -732,7 +734,7 @@ export async function getTippingHistory(
 
 export async function exportConnectedRequestsCSV(token: string): Promise<Blob> {
   try {
-    const response = await fetch(`${API_BASE_URL}/warm-intro-requests/export/csv`, {
+    const response = await fetch(`${API_BASE_URL}/api/v1/warm-intro-requests/export/csv`, {
       method: "GET",
       headers: {
         "Authorization": `Bearer ${token}`,
@@ -757,7 +759,7 @@ export async function getFilterOptions(token: string): Promise<{
   generated_from: string;
 }> {
   try {
-    const response = await fetch(`${API_BASE_URL}/filter-options`, {
+    const response = await fetch(`${API_BASE_URL}/api/v1/filter-options`, {
       method: "GET",
       headers: {
         "Authorization": `Bearer ${token}`,
@@ -793,7 +795,7 @@ export async function submitAccessRequest(
   created_at: string;
 }> {
   try {
-    const response = await fetch(`${API_BASE_URL}/access-requests`, {
+    const response = await fetch(`${API_BASE_URL}/api/v1/access-requests`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -831,7 +833,7 @@ export async function getAccessRequests(
       params.append('status_filter', statusFilter);
     }
 
-    const response = await fetch(`${API_BASE_URL}/admin/access-requests?${params}`, {
+    const response = await fetch(`${API_BASE_URL}/api/v1/admin/access-requests?${params}`, {
       method: "GET",
       headers: {
         "Authorization": `Bearer ${token}`,
@@ -867,7 +869,7 @@ export async function approveAccessRequest(
   message: string;
 }> {
   try {
-    const response = await fetch(`${API_BASE_URL}/admin/access-requests/${requestId}/approve`, {
+    const response = await fetch(`${API_BASE_URL}/api/v1/admin/access-requests/${requestId}/approve`, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${token}`,
@@ -903,7 +905,7 @@ export async function denyAccessRequest(
   message: string;
 }> {
   try {
-    const response = await fetch(`${API_BASE_URL}/admin/access-requests/${requestId}`, {
+    const response = await fetch(`${API_BASE_URL}/api/v1/admin/access-requests/${requestId}`, {
       method: "PATCH",
       headers: {
         "Authorization": `Bearer ${token}`,
@@ -931,7 +933,7 @@ export async function resetPassword(
   newPassword: string
 ): Promise<{ access_token: string; token_type: string }> {
   try {
-    const response = await fetch(`${API_BASE_URL}/auth/reset-password`, {
+    const response = await fetch(`${API_BASE_URL}/api/v1/auth/reset-password`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -960,7 +962,7 @@ export async function getPendingCounts(token: string): Promise<{
   access_requests: number;
 }> {
   try {
-    const response = await fetch(`${API_BASE_URL}/dashboard/pending-counts`, {
+    const response = await fetch(`${API_BASE_URL}/api/v1/dashboard/pending-counts`, {
       method: "GET",
       headers: {
         "Authorization": `Bearer ${token}`,
@@ -993,7 +995,7 @@ export async function getLastSearchResults(token: string): Promise<{
   };
 }> {
   try {
-    const response = await fetch(`${API_BASE_URL}/last-search-results`, {
+    const response = await fetch(`${API_BASE_URL}/api/v1/last-search-results`, {
       method: "GET",
       headers: {
         "Authorization": `Bearer ${token}`,
@@ -1013,7 +1015,7 @@ export async function getLastSearchResults(token: string): Promise<{
 
 export async function clearLastSearchResults(token: string): Promise<{ success: boolean }> {
   try {
-    const response = await fetch(`${API_BASE_URL}/last-search-results`, {
+    const response = await fetch(`${API_BASE_URL}/api/v1/last-search-results`, {
       method: "DELETE",
       headers: {
         "Authorization": `Bearer ${token}`,
@@ -1034,7 +1036,7 @@ export async function clearLastSearchResults(token: string): Promise<{ success: 
 
 export async function checkLastSearchResultsExist(token: string): Promise<{ has_results: boolean }> {
   try {
-    const response = await fetch(`${API_BASE_URL}/last-search-results/exists`, {
+    const response = await fetch(`${API_BASE_URL}/api/v1/last-search-results/exists`, {
       method: "GET",
       headers: {
         "Authorization": `Bearer ${token}`,
@@ -1057,7 +1059,7 @@ export async function updateUserPreferences(
   preferences: { persist_search_results: boolean }
 ): Promise<{ persist_search_results: boolean }> {
   try {
-    const response = await fetch(`${API_BASE_URL}/user_preferences/preferences`, {
+    const response = await fetch(`${API_BASE_URL}/api/v1/user_preferences/preferences`, {
       method: "PUT",
       headers: {
         "Authorization": `Bearer ${token}`,

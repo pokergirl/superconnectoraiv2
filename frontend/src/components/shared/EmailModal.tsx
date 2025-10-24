@@ -18,7 +18,9 @@ import { useAuth } from '@/context/AuthContext';
 // Get API base URL
 const getApiBaseUrl = () => {
   if (process.env.NEXT_PUBLIC_API_BASE_URL) {
-    return process.env.NEXT_PUBLIC_API_BASE_URL;
+    // Remove /api/v1 suffix if it exists to avoid duplication
+    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+    return baseUrl.replace(/\/api\/v1$/, '');
   }
   if (typeof window !== 'undefined') {
     return window.location.origin.replace(':3000', ':8000');
