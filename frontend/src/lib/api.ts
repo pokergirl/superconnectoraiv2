@@ -224,6 +224,33 @@ export async function getWarmIntroRequestById(
   }
 }
 
+export async function sendWarmIntroNotification(
+  warmIntroRequestId: string,
+  token: string
+): Promise<{ success: boolean; message: string; email_id?: string }> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/v1/send-warm-intro-notification`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        warm_intro_request_id: warmIntroRequestId,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Failed to send warm intro notification:", error);
+    throw error;
+  }
+}
+
 async function uploadConnectionsCSV(file: File, token: string): Promise<{ message: string; uploaded_count: number }> {
   try {
     const formData = new FormData();

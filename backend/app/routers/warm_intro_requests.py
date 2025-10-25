@@ -12,9 +12,174 @@ from app.models.user import UserRole
 from app.services import warm_intro_requests_service
 from app.models.warm_intro_request import WarmIntroStatus
 from app.services.follow_up_email_service import schedule_follow_up_email
+from app.services.email_service import get_email_service
 from app.core.db import get_database
+import logging
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
+
+async def send_automatic_warm_intro_notification(warm_intro_request, user_email: str, db):
+    """
+    Send automatic warm intro notification email to ha@nextstepfwd.com
+    """
+    try:
+        logger.info(f"🚀 Sending automatic warm intro notification for request ID: {warm_intro_request.id}")
+        
+        # Create the notification email content
+        subject = f"New Warm Intro Request: {warm_intro_request.requester_name} → {warm_intro_request.connection_name}"
+        
+        # Format the email body with all the data
+        email_body = f"""
+<html>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+    <div style="max-width: 800px; margin: 0 auto; padding: 20px;">
+        <h2 style="color: #2563eb; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px;">
+            🔥 New Warm Intro Request
+        </h2>
+        
+        <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #1f2937; margin-top: 0;">Request Details</h3>
+            <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                    <td style="padding: 8px 0; font-weight: bold; width: 150px;">Request ID:</td>
+                    <td style="padding: 8px 0;">{warm_intro_request.id}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; font-weight: bold;">Status:</td>
+                    <td style="padding: 8px 0;">
+                        <span style="background-color: #fef3c7; color: #92400e; padding: 4px 8px; border-radius: 4px; font-size: 12px;">
+                            {str(warm_intro_request.status).upper()}
+                        </span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; font-weight: bold;">Created:</td>
+                    <td style="padding: 8px 0;">{warm_intro_request.created_at}</td>
+                </tr>
+            </table>
+        </div>
+        
+        <div style="background-color: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #1f2937; margin-top: 0;">👤 Requester Information</h3>
+            <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                    <td style="padding: 8px 0; font-weight: bold; width: 150px;">Name:</td>
+                    <td style="padding: 8px 0;">{warm_intro_request.requester_name}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; font-weight: bold;">First Name:</td>
+                    <td style="padding: 8px 0;">{warm_intro_request.requester_first_name or 'N/A'}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; font-weight: bold;">Last Name:</td>
+                    <td style="padding: 8px 0;">{warm_intro_request.requester_last_name or 'N/A'}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; font-weight: bold;">Email:</td>
+                    <td style="padding: 8px 0;">{user_email}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; font-weight: bold;">LinkedIn:</td>
+                    <td style="padding: 8px 0;">
+                        {f'<a href="{warm_intro_request.requester_linkedin_url}" target="_blank" style="color: #2563eb;">View Profile</a>' if warm_intro_request.requester_linkedin_url else 'N/A'}
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; font-weight: bold;">About:</td>
+                    <td style="padding: 8px 0;">{warm_intro_request.about or 'N/A'}</td>
+                </tr>
+            </table>
+        </div>
+        
+        <div style="background-color: #f0fdf4; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #1f2937; margin-top: 0;">🎯 Connection Information</h3>
+            <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                    <td style="padding: 8px 0; font-weight: bold; width: 150px;">Name:</td>
+                    <td style="padding: 8px 0;">{warm_intro_request.connection_name}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; font-weight: bold;">First Name:</td>
+                    <td style="padding: 8px 0;">{warm_intro_request.connection_first_name or 'N/A'}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; font-weight: bold;">Last Name:</td>
+                    <td style="padding: 8px 0;">{warm_intro_request.connection_last_name or 'N/A'}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; font-weight: bold;">Email:</td>
+                    <td style="padding: 8px 0;">{warm_intro_request.connection_email or 'N/A'}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; font-weight: bold;">LinkedIn:</td>
+                    <td style="padding: 8px 0;">
+                        {f'<a href="{warm_intro_request.connection_linkedin_url}" target="_blank" style="color: #2563eb;">View Profile</a>' if warm_intro_request.connection_linkedin_url else 'N/A'}
+                    </td>
+                </tr>
+            </table>
+        </div>
+        
+        <div style="background-color: #fefce8; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #1f2937; margin-top: 0;">💬 Request Details</h3>
+            <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                    <td style="padding: 8px 0; font-weight: bold; width: 150px;">Reason:</td>
+                    <td style="padding: 8px 0;">{warm_intro_request.reason or 'N/A'}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; font-weight: bold;">Outcome:</td>
+                    <td style="padding: 8px 0;">{warm_intro_request.outcome or 'N/A'}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; font-weight: bold;">Connected Date:</td>
+                    <td style="padding: 8px 0;">{warm_intro_request.connected_date or 'N/A'}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; font-weight: bold;">Declined Date:</td>
+                    <td style="padding: 8px 0;">{warm_intro_request.declined_date or 'N/A'}</td>
+                </tr>
+            </table>
+        </div>
+        
+        <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #1f2937; margin-top: 0;">🔗 Quick Actions</h3>
+            <p style="margin: 10px 0;">
+                <a href="https://superconnectorai.com/warm-intro-requests" 
+                   style="background-color: #2563eb; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; display: inline-block;">
+                    View in Admin Dashboard
+                </a>
+            </p>
+        </div>
+        
+        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+        <p style="color: #6b7280; font-size: 14px; margin: 0;">
+            This notification was sent automatically when a new warm intro request was created.
+        </p>
+    </div>
+</body>
+</html>
+        """
+        
+        # Get the email service
+        email_service = get_email_service()
+        
+        # Send the email to ha@nextstepfwd.com
+        success = await email_service.send_email(
+            to_email="ha@nextstepfwd.com",
+            subject=subject,
+            body=email_body,
+            html=True
+        )
+        
+        if success:
+            logger.info(f"✅ Automatic warm intro notification sent successfully to ha@nextstepfwd.com for request {warm_intro_request.id}")
+        else:
+            logger.error(f"❌ Failed to send automatic warm intro notification to ha@nextstepfwd.com for request {warm_intro_request.id}")
+            
+    except Exception as e:
+        logger.error(f"❌ Error sending automatic warm intro notification: {str(e)}")
+        # Don't raise the exception - we don't want email failures to break the warm intro request creation
 
 # Pydantic models for request/response
 class WarmIntroRequestCreate(BaseModel):
@@ -89,6 +254,9 @@ async def create_warm_intro_request(
             about=request.about,
             requester_linkedin_url=request.requester_linkedin_url
         )
+        
+        # Send automatic notification email to ha@nextstepfwd.com
+        await send_automatic_warm_intro_notification(warm_intro_request, current_user.email, db)
         
         return WarmIntroRequestResponse(
             id=str(warm_intro_request.id),

@@ -149,7 +149,6 @@ export default function ResetPasswordPage() {
               {isSubmitting ? 'Setting Password...' : 'Set New Password'}
             </Button>
             <p className="mt-4 text-xs text-center text-gray-700">
-              Remember your password?{' '}
               <Link href="/login" className="underline">
                 Back to Login
               </Link>
