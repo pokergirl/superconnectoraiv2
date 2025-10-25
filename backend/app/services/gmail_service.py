@@ -5,7 +5,7 @@ import json
 import tempfile
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from typing import Optional
+from typing import Optional, List
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -143,7 +143,7 @@ class GmailService:
         
         return creds
     
-    def _create_message(self, to_email: str, subject: str, body: str, html: bool = True) -> dict:
+    def _create_message(self, to_email: str, subject: str, body: str, html: bool = True, cc_emails: Optional[List[str]] = None) -> dict:
         """
         Create a message for Gmail API
         
@@ -152,6 +152,7 @@ class GmailService:
             subject: Email subject
             body: Email body
             html: Whether the body is HTML
+            cc_emails: Optional list of CC email addresses
         
         Returns:
             dict: Message object for Gmail API
@@ -161,6 +162,10 @@ class GmailService:
             message['To'] = to_email
             message['From'] = f"{settings.FROM_NAME} <{settings.FROM_EMAIL}>"
             message['Subject'] = subject
+            
+            # Add CC emails if provided
+            if cc_emails:
+                message['Cc'] = ', '.join(cc_emails)
             
             # Attach body
             if html:
@@ -182,7 +187,8 @@ class GmailService:
         to_email: str,
         subject: str,
         body: str,
-        html: bool = True
+        html: bool = True,
+        cc_emails: Optional[List[str]] = None
     ) -> bool:
         """
         Send an email using Gmail API
@@ -192,6 +198,7 @@ class GmailService:
             subject: Email subject
             body: Email body (HTML or plain text)
             html: Whether the body is HTML (default: True)
+            cc_emails: Optional list of CC email addresses
         
         Returns:
             bool: True if email sent successfully, False otherwise
@@ -202,7 +209,7 @@ class GmailService:
                 return False
             
             # Create message
-            message = self._create_message(to_email, subject, body, html)
+            message = self._create_message(to_email, subject, body, html, cc_emails)
             
             # Send email
             sent_message = self.service.users().messages().send(

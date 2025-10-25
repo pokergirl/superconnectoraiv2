@@ -81,11 +81,15 @@ async def send_follow_up_email(db, follow_up_id: str) -> bool:
             follow_up["facilitator_email"]
         )
         
+        # Define CC emails for follow-up emails
+        cc_emails = ["ha@nextstepfwd.com", "hassan.rasool@snapdev.ai"]
+        
         # Send the email using the configured email service
         success = await send_email_via_service(
             to_email=follow_up["requester_email"],
             subject=f"Follow-up: Connection with {follow_up['connection_name']}",
-            content=email_content
+            content=email_content,
+            cc_emails=cc_emails
         )
         
         if success:
@@ -150,7 +154,7 @@ Warmly,
 Ha
 """
 
-async def send_email_via_service(to_email: str, subject: str, content: str) -> bool:
+async def send_email_via_service(to_email: str, subject: str, content: str, cc_emails: Optional[List[str]] = None) -> bool:
     """Send an email using the configured email service (Gmail API or SMTP)"""
     try:
         from app.services.email_service import get_email_service
@@ -162,11 +166,14 @@ async def send_email_via_service(to_email: str, subject: str, content: str) -> b
             to_email=to_email,
             subject=subject,
             body=content,
-            html=True
+            html=True,
+            cc_emails=cc_emails
         )
         
         if success:
             logger.info(f"Email sent successfully to {to_email}")
+            if cc_emails:
+                logger.info(f"CC'd to: {', '.join(cc_emails)}")
         else:
             logger.error(f"Failed to send email to {to_email}")
         

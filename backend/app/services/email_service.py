@@ -2,7 +2,7 @@ import logging
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from typing import Optional
+from typing import Optional, List
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -22,7 +22,8 @@ class EmailService:
         to_email: str,
         subject: str,
         body: str,
-        html: bool = True
+        html: bool = True,
+        cc_emails: Optional[List[str]] = None
     ) -> bool:
         """
         Send an email using smtplib with proper SSL/TLS handling
@@ -32,6 +33,7 @@ class EmailService:
             subject: Email subject
             body: Email body (HTML or plain text)
             html: Whether the body is HTML (default: True)
+            cc_emails: Optional list of CC email addresses
         
         Returns:
             bool: True if email sent successfully, False otherwise
@@ -41,6 +43,8 @@ class EmailService:
                 # Simulate email sending if SMTP not configured
                 logger.info(f"SIMULATED EMAIL SENT:")
                 logger.info(f"To: {to_email}")
+                if cc_emails:
+                    logger.info(f"CC: {', '.join(cc_emails)}")
                 logger.info(f"Subject: {subject}")
                 logger.info(f"Body: {body[:100]}...")
                 return True
@@ -50,6 +54,10 @@ class EmailService:
             msg['Subject'] = subject
             msg['From'] = f"{settings.FROM_NAME} <{settings.FROM_EMAIL}>"
             msg['To'] = to_email
+            
+            # Add CC emails if provided
+            if cc_emails:
+                msg['Cc'] = ', '.join(cc_emails)
             
             # Attach body
             if html:
@@ -68,10 +76,18 @@ class EmailService:
                     server.starttls()
                 
                 server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
-                server.send_message(msg)
+                
+                # Prepare recipient list (to + cc)
+                recipients = [to_email]
+                if cc_emails:
+                    recipients.extend(cc_emails)
+                
+                server.send_message(msg, to_addrs=recipients)
                 server.quit()
                 
                 logger.info(f"Email sent successfully to {to_email}")
+                if cc_emails:
+                    logger.info(f"CC'd to: {', '.join(cc_emails)}")
                 return True
                 
             except smtplib.SMTPException as e:

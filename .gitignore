@@ -37,7 +37,6 @@ lerna-debug.log*
 
 # Local env files
 .env*.local
-.env
 .env.development.local
 .env.test.local
 .env.production.local
@@ -103,3 +102,4 @@ backend/.venv
 
 *.md
 backend/credentials.json
+config.bat
